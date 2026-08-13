@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     where: { deletedAt: null },
     include: {
       createdBy: { include: { institution: true } },
+      indicatorAssessments: { select: { score: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -67,7 +68,10 @@ export async function GET(request: NextRequest) {
           ? awardFile.url
           : "",
       awarded: Boolean(awardFile),
-      skor: 0,
+      skor: item.indicatorAssessments.reduce(
+        (total, assessment) => total + Number(assessment.score),
+        0,
+      ),
     };
   });
 

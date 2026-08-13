@@ -304,7 +304,11 @@ export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
     title: "Waktu Pengembangan Inovasi",
     formatter: formatTableDate,
   },
-  { key: "skor", title: "Estimasi Skor Kematangan" },
+  {
+    key: "skor",
+    title: "Estimasi Skor Kematangan",
+    formatter: (value) => Number(value || 0).toFixed(2),
+  },
   {
     key: "awardFileUrl",
     title: "File Penghargaan",
