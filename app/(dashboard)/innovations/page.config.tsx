@@ -35,7 +35,10 @@ export type InnovationDto = {
   initiator: string;
   stage: InnovationStage;
   trialDate: string;
+  ImplementationDate: string;
+  DevelopmentDate: string;
   awarded: boolean;
+  skor: number;
 };
 
 export type InnovationFormValues = Omit<
@@ -75,6 +78,9 @@ export const initialFormValues: InnovationFormValues = {
   initiator: "",
   stage: "Inisiatif",
   trialDate: "2026-08-10",
+  ImplementationDate: "2026-08-10",
+  DevelopmentDate: "2026-08-10",
+  skor: 0,
 };
 
 export const initialInnovations: InnovationDto[] = [
@@ -88,7 +94,10 @@ export const initialInnovations: InnovationDto[] = [
     initiator: "Ahmad Ashidiq",
     stage: "Penerapan",
     trialDate: "2025-08-10",
+    ImplementationDate: "2026-08-10",
+    DevelopmentDate: "2024-08-10",
     awarded: true,
+    skor: 85,
   },
 ];
 
@@ -143,6 +152,34 @@ export const columnFormats: DefaultColumnFormat<InnovationDto>[] = [
           }).format(new Date(`${value}T00:00:00`))
         : "-",
   },
+  {
+    key: "ImplementationDate",
+    title: "Waktu Penerapan Inovasi",
+    formatter: (value) =>
+      typeof value === "string"
+        ? new Intl.DateTimeFormat("id-ID", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }).format(new Date(`${value}T00:00:00`))
+        : "-",
+  },
+  {
+    key: "DevelopmentDate",
+    title: "Waktu Pengembangan Inovasi",
+    formatter: (value) =>
+      typeof value === "string"
+        ? new Intl.DateTimeFormat("id-ID", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }).format(new Date(`${value}T00:00:00`))
+        : "-",
+  },
+  { key: "skor", title: "Estimasi Skor Kematangan" },
+
 ];
 
 type HeaderToolbarProps = {

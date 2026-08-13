@@ -16,7 +16,7 @@ import {
   statistics,
   type CountdownValue,
 } from "../page.config";
-import { AppPageHeader } from "@/components/app-sidebar";
+import { AppPageHeader, useSessionUser } from "@/components/app-sidebar";
 
 type DashboardContentProps = {
   countdown: CountdownValue;
@@ -31,35 +31,45 @@ function CountdownBanner({ countdown }: { countdown: CountdownValue }) {
   ];
 
   return (
-    <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#4992ff] to-[#4c12ff] px-5 py-4 text-white shadow-sm sm:px-8">
-      <div className="absolute left-0 right-0 top-6 hidden items-center gap-5 px-8 lg:flex">
-        <span className="h-px flex-1 bg-white/70" />
-        <span className="text-[13px] font-semibold">
-          Hitungan Mundur Pengisian Indeks Inovasi Daerah
-        </span>
-        <span className="h-px flex-1 bg-white/70" />
-      </div>
-      <p className="mb-2 text-center text-xs font-semibold lg:hidden">
-        Hitungan Mundur Pengisian Indeks Inovasi Daerah
-      </p>
-      <div className="flex items-center justify-center gap-3 pt-1 lg:pt-7">
-        <Clock3 className="size-7 shrink-0" />
-        <div className="flex items-start gap-1.5">
+    <section className="relative overflow-hidden rounded-2xl border border-blue-400 bg-gradient-to-br from-[#428df7] via-[#4b62fa] to-[#5013f7] p-4 text-white sm:p-6">
+      <div className="pointer-events-none absolute -right-16 -top-24 size-56 rounded-full border border-white/15" />
+      <div className="pointer-events-none absolute -bottom-24 right-20 size-48 rounded-full bg-white/5" />
+
+      <div className="relative flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 sm:size-11">
+            <Clock3 className="size-5" />
+          </div>
+          <div>
+            <h2 className="max-w-72 text-[13px] font-semibold leading-snug sm:text-base">
+              Hitungan Mundur Pengisian Indeks Inovasi Daerah
+              <div className="mx-2 inline-flex items-center gap-2 rounded-full border border-emerald-200/40 bg-emerald-400/20 px-2.5 py-1 text-[8px] font-semibold">
+                <span className="size-1.5 rounded-full bg-emerald-300" />
+                AKTIF
+              </div>
+            </h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
           {values.map((item, index) => (
-            <div key={item.label} className="flex items-start gap-1.5">
-              {index > 0 && <span className="text-2xl font-bold">:</span>}
-              <div className="min-w-8 text-center">
-                <div className="text-2xl font-bold leading-none tracking-wide sm:text-[27px]">
+            <div key={item.label} className="relative">
+              {index > 0 && (
+                <span className="absolute -left-2 top-3 hidden text-lg font-semibold text-white/60 sm:block">
+                  :
+                </span>
+              )}
+              <div className="rounded-xl border border-white/20 bg-white/10 px-1 py-2.5 text-center backdrop-blur-sm sm:min-w-16 sm:px-2">
+                <div className="text-lg font-bold leading-none tabular-nums sm:text-2xl">
                   {item.value}
                 </div>
-                <div className="mt-1 text-[9px]">{item.label}</div>
+                <div className="mt-1.5 text-[8px] font-medium text-blue-100 sm:text-[10px]">
+                  {item.label}
+                </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
-      <div className="mx-auto mt-1 w-fit rounded-full bg-emerald-400 px-5 py-0.5 text-[9px] font-bold">
-        AKTIF
       </div>
     </section>
   );
@@ -67,19 +77,19 @@ function CountdownBanner({ countdown }: { countdown: CountdownValue }) {
 
 function StatisticsGrid() {
   return (
-    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <section className="grid grid-cols-2 gap-3 xl:grid-cols-3">
       {statistics.map((item) => {
         const Icon = item.icon;
         return (
           <article
             key={item.title}
-            className="relative min-h-28 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
+            className="relative min-h-28 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5"
           >
-            <p className="max-w-[80%] text-[12px] font-semibold leading-tight text-neutral-800">
+            <p className="max-w-[78%] text-[11px] font-semibold leading-tight text-neutral-800 sm:text-[12px]">
               {item.title}
             </p>
-            <Icon className="absolute right-4 top-4 size-6 text-neutral-900" />
-            <p className="mt-3 text-[38px] font-semibold leading-none tracking-tight text-black">
+            <Icon className="absolute right-3 top-3 size-5 text-neutral-900 sm:right-4 sm:top-4 sm:size-6" />
+            <p className="mt-4 text-[32px] font-semibold leading-none tracking-tight text-black sm:mt-3 sm:text-[38px]">
               {item.value}
             </p>
           </article>
@@ -91,12 +101,12 @@ function StatisticsGrid() {
 
 function MapPanel() {
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-neutral-200 bg-white p-3 sm:p-4">
       <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
         <MapPinned className="size-5" />
         Peta Inovasi
       </h2>
-      <div className="relative aspect-[16/8] min-h-64 overflow-hidden rounded-lg bg-slate-800">
+      <div className="relative aspect-[4/3] min-h-52 overflow-hidden rounded-lg bg-slate-800 sm:aspect-[16/8] sm:min-h-64">
         <Image
           src="/images/dashboard-kepri-map.png"
           alt="Peta satelit Kepulauan Riau"
@@ -105,7 +115,7 @@ function MapPanel() {
           sizes="(max-width: 1024px) 100vw, 60vw"
           className="object-cover"
         />
-        <div className="absolute bottom-3 left-3 rounded-md bg-cyan-400/90 p-2 text-white shadow">
+        <div className="absolute bottom-3 left-3 rounded-md border border-cyan-300 bg-cyan-400/90 p-2 text-white">
           <MapPinned className="size-4" />
         </div>
       </div>
@@ -115,7 +125,7 @@ function MapPanel() {
 
 function AnnouncementPanel() {
   return (
-    <section className="min-h-[320px] rounded-xl border border-neutral-200 bg-white p-4 shadow-sm lg:min-h-0">
+    <section className="min-h-[320px] rounded-xl border border-neutral-200 bg-white p-4 lg:min-h-0">
       <h2 className="mb-5 flex items-center gap-2 text-sm font-semibold">
         <Megaphone className="size-5" />
         Pengumuman
@@ -144,7 +154,7 @@ function AnnouncementPanel() {
 
 function AssessmentPanel() {
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-neutral-200 bg-white p-4">
       <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
         <PieChart className="size-5" />
         Aspek Penilaian
@@ -176,16 +186,20 @@ function AssessmentPanel() {
 }
 
 export default function DashboardContent({ countdown }: DashboardContentProps) {
+  const { user } = useSessionUser();
+
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[1500px] px-4 py-5 text-neutral-950 sm:px-6 lg:px-8 lg:py-7">
+    <div className="mx-auto min-h-screen w-full max-w-[1500px] px-3 py-4 text-neutral-950 sm:px-6 sm:py-5 lg:px-8 lg:py-7">
       <AppPageHeader />
 
-      <div className="mb-6">
-        <h2 className="flex flex-wrap items-center gap-x-1.5 text-lg font-bold sm:text-xl">
+      <div className="mb-5 sm:mb-6">
+        <h2 className="text-base font-bold leading-snug sm:text-xl">
           <span>Selamat Datang Kembali,</span>
-          <span className="text-[#ffad22]">Admin Karimun 👋</span>
+          <span className="ml-1.5 text-[#ffad22]">
+            {user?.fullname ?? "Pengguna"} 👋
+          </span>
         </h2>
-        <p className="mt-1 text-[13px] text-neutral-700">
+        <p className="mt-1 text-xs leading-relaxed text-neutral-700 sm:text-[13px]">
           Lihat Inovasi OPD bidang Digital dan Non Digital secara cepat.
         </p>
       </div>

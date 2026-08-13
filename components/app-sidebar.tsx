@@ -2,15 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ChevronDown,
   FileText,
   Layers3,
   LogOut,
   Settings,
-  SlidersHorizontal,
   Sparkles,
   Trophy,
   UserRound,
@@ -44,7 +50,30 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+
+export type SessionUser = {
+  id: string;
+  username: string;
+  email: string | null;
+  fullname: string;
+  role: string;
+  institution: string;
+  nomenclature: string;
+};
+
+type SessionContextValue = {
+  user: SessionUser | null;
+  logout: () => Promise<void>;
+};
+
+const SessionContext = createContext<SessionContextValue>({
+  user: null,
+  logout: async () => undefined,
+});
+
+export const useSessionUser = () => useContext(SessionContext);
 
 type SidebarChild = {
   title: string;
@@ -111,12 +140,15 @@ const getInitials = (name: string) =>
     .join("");
 
 export function AppPageHeader({
-  userName = "Admin Karimun",
-  userRole = "UPT",
+  userName,
+  userRole,
 }: AppPageHeaderProps) {
+  const { user, logout } = useSessionUser();
   const pathname = usePathname();
   const title = getPageTitle(pathname);
-  const initials = getInitials(userName);
+  const displayedName = userName ?? user?.fullname ?? "Pengguna";
+  const displayedRole = userRole ?? user?.role ?? "-";
+  const initials = getInitials(displayedName);
   const formattedDate = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -126,9 +158,9 @@ export function AppPageHeader({
   }).format(new Date());
 
   return (
-    <header className="mb-8 flex items-center justify-between gap-4">
+    <header className="mb-6 flex items-center justify-between gap-3 sm:mb-8 sm:gap-4">
       <div>
-        <h1 className="text-xl font-bold text-neutral-950">{title}</h1>
+        <h1 className="text-lg font-bold text-neutral-950 sm:text-xl">{title}</h1>
         <p
           suppressHydrationWarning
           className="mt-0.5 text-[13px] text-neutral-700"
@@ -137,13 +169,13 @@ export function AppPageHeader({
         </p>
       </div>
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-3 rounded-xl p-1.5 text-left outline-none transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-[#ffb437]/40">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm font-bold text-neutral-700">
+        <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl p-1 text-left outline-none transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-[#ffb437]/40 sm:gap-3 sm:p-1.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700 sm:size-11 sm:text-sm">
             {initials}
           </span>
           <span className="hidden sm:block">
-            <span className="block text-sm font-bold">{userName}</span>
-            <span className="block text-xs text-neutral-700">{userRole}</span>
+            <span className="block text-sm font-bold">{displayedName}</span>
+            <span className="block text-xs text-neutral-700">{displayedRole}</span>
           </span>
           <ChevronDown className="hidden size-4 text-neutral-500 sm:block" />
         </DropdownMenuTrigger>
@@ -161,9 +193,9 @@ export function AppPageHeader({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            render={<Link href="/login" />}
             variant="destructive"
             className="h-9 cursor-pointer text-sm"
+            onClick={() => void logout()}
           >
             <LogOut className="size-4" />
             Keluar
@@ -179,6 +211,7 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({ onLogout }: AppSidebarProps) {
+  const { logout } = useSessionUser();
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<string[]>([
@@ -197,6 +230,11 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
 
   const handleNavigation = () => {
     if (isMobile) setOpenMobile(false);
+  };
+
+  const handleLogout = () => {
+    onLogout?.();
+    void logout();
   };
 
   return (
@@ -311,7 +349,7 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Keluar"
-              onClick={onLogout}
+              onClick={handleLogout}
               className="h-9 text-[13px] font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:[&>span]:hidden"
             >
               <LogOut />
@@ -336,8 +374,54 @@ export function AppSidebarLayout({
   onLogout,
   defaultOpen = true,
 }: AppSidebarLayoutProps) {
+  const router = useRouter();
+  const [user, setUser] = useState<SessionUser | null>(null);
+
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const response = await fetch("/api/session", { cache: "no-store" });
+
+        if (!response.ok) {
+          localStorage.removeItem("hr_user_data");
+          router.replace("/login?reason=session_expired");
+          return;
+        }
+
+        const result = (await response.json()) as { data: SessionUser };
+        setUser(result.data);
+        localStorage.setItem("hr_user_data", JSON.stringify(result.data));
+      } catch {
+        toast.add({
+          title: "Sesi bermasalah",
+          description: "Silakan muat ulang halaman.",
+          type: "error",
+        });
+      }
+    };
+
+    void loadSession();
+  }, [router]);
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } finally {
+      localStorage.removeItem("hr_user_data");
+      setUser(null);
+      toast.add({
+        title: "Berhasil keluar",
+        description: "Sesi Anda telah berakhir.",
+        type: "success",
+      });
+      router.replace("/login");
+      router.refresh();
+    }
+  }, [router]);
+
   return (
-    <SidebarProvider
+    <SessionContext.Provider value={{ user, logout }}>
+      <SidebarProvider
       defaultOpen={defaultOpen}
       style={
         {
@@ -352,17 +436,15 @@ export function AppSidebarLayout({
         } as React.CSSProperties
       }
     >
-      <AppSidebar onLogout={onLogout} />
-      <SidebarInset className="min-w-0 bg-[#f7f8fc]">
-        <header className="sticky top-0 z-20 flex h-14 items-center border-b border-neutral-200 bg-white px-4 md:hidden">
-          <SidebarTrigger className="mr-3" />
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <SlidersHorizontal className="size-4 text-[#ffb437]" />
-            Karimun Innovation
-          </div>
-        </header>
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+        <AppSidebar onLogout={onLogout} />
+        <SidebarInset className="min-w-0 bg-[#f7f8fc]">
+          <header className="sticky top-0 z-20 flex h-14 items-center border-b border-neutral-200 bg-white px-4 text-neutral-900 md:hidden">
+            <SidebarTrigger className="mr-3" />
+            <div className="text-sm font-semibold">Karimun Innovation</div>
+          </header>
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    </SessionContext.Provider>
   );
 }

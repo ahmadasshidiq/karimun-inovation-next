@@ -13,6 +13,15 @@ import {
 import { cn, DARK_GLASS_PANEL_CLASS } from "@/lib/utils";
 import { Button } from "./ui/button";
 
+const paginationButtonClass = cn(
+  "inline-flex h-9 w-9 items-center justify-center rounded-lg border",
+  "border-slate-200 bg-white text-slate-700",
+  "transition-colors hover:bg-slate-50",
+  "disabled:cursor-not-allowed disabled:text-slate-400 disabled:opacity-100",
+  "dark:border-slate-200 dark:bg-white dark:text-slate-700",
+  "dark:hover:bg-slate-50 dark:disabled:text-slate-400",
+);
+
 export type DefaultColumnFormat<T = object> = {
   key: string;
   title: string;
@@ -33,6 +42,7 @@ export type DynamicPageProps<T = object> = {
   totalPages?: number;
   loading?: boolean;
   emptyMessage?: string;
+  className?: string;
   tableClassName?: string;
   bodyRowClassName?: string;
   onPageChange?: (page: number) => void;
@@ -50,20 +60,22 @@ export default function DynamicPage<T extends object>({
   totalPages = 1,
   loading = false,
   emptyMessage = "Belum ada data",
+  className,
   tableClassName,
   bodyRowClassName,
   onPageChange,
   renderActions,
   getRowId,
 }: DynamicPageProps<T>) {
-  const hasPagination = totalPages > 1 && Boolean(onPageChange);
+  const hasPagination = Boolean(onPageChange);
   const hasActions = Boolean(renderActions);
 
   return (
     <div
       className={cn(
-        "rounded-[16px] border border-slate-200 bg-white p-6 text-slate-900 shadow-sm dark:text-slate-100",
+        "rounded-[16px] border border-slate-200 bg-white p-6 text-slate-900 shadow-none dark:text-slate-100",
         DARK_GLASS_PANEL_CLASS,
+        className,
       )}
     >
       {toolbar ? <div className="mb-6">{toolbar}</div> : null}
@@ -81,13 +93,13 @@ export default function DynamicPage<T extends object>({
             tableClassName,
           )}
         >
-          <TableHeader>
-            <TableRow className="border-slate-200 hover:bg-transparent dark:border-white/10">
+          <TableHeader className="border-b-2 border-slate-300 dark:border-white/20">
+            <TableRow className="border-b-2 border-slate-300 hover:bg-transparent dark:border-white/20">
               {columns.map((column) => (
                 <TableHead
                   key={column.key}
                   className={cn(
-                    "h-auto border-b border-slate-200 px-4 py-5 text-[13px] font-semibold text-slate-700 whitespace-nowrap dark:border-white/10 dark:text-slate-200",
+                    "h-auto border-b-2 border-slate-300 px-4 py-5 text-[13px] font-semibold text-slate-700 whitespace-nowrap dark:border-white/20 dark:text-slate-200",
                     column.textClassName,
                   )}
                 >
@@ -95,7 +107,7 @@ export default function DynamicPage<T extends object>({
                 </TableHead>
               ))}
               {hasActions ? (
-                <TableHead className="h-auto border-b border-slate-200 px-4 py-5 text-[13px] font-semibold text-slate-700 whitespace-nowrap text-right dark:border-white/10 dark:text-slate-200">
+                <TableHead className="h-auto border-b-2 border-slate-300 px-4 py-5 text-[13px] font-semibold text-slate-700 whitespace-nowrap text-right dark:border-white/20 dark:text-slate-200">
                   Aksi
                 </TableHead>
               ) : null}
@@ -111,7 +123,7 @@ export default function DynamicPage<T extends object>({
                   <TableRow
                     key={rowId}
                     className={cn(
-                      "border-slate-200 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.06]",
+                      "border-slate-300 hover:bg-slate-50 dark:border-white/20 dark:hover:bg-white/[0.06]",
                       bodyRowClassName,
                     )}
                   >
@@ -121,7 +133,7 @@ export default function DynamicPage<T extends object>({
                         <TableCell
                           key={`${rowId}-${column.key}`}
                           className={cn(
-                            "border-b border-slate-200 px-4 py-5 text-[14px] leading-6 text-slate-700 whitespace-nowrap dark:border-white/10 dark:text-slate-200/95",
+                            "border-b border-slate-300 px-4 py-5 text-[14px] leading-6 text-slate-700 whitespace-nowrap dark:border-white/20 dark:text-slate-200/95",
                             column.textClassName,
                           )}
                         >
@@ -132,7 +144,7 @@ export default function DynamicPage<T extends object>({
                       );
                     })}
                     {hasActions ? (
-                      <TableCell className="border-b border-slate-200 px-4 py-5 text-right dark:border-white/10">
+                      <TableCell className="border-b border-slate-300 px-4 py-5 text-right dark:border-white/20">
                         {renderActions?.(row)}
                       </TableCell>
                     ) : null}
@@ -140,10 +152,10 @@ export default function DynamicPage<T extends object>({
                 );
               })
             ) : (
-              <TableRow className="border-slate-200 hover:bg-transparent dark:border-white/10">
+              <TableRow className="border-slate-300 hover:bg-transparent dark:border-white/20">
                 <TableCell
                   colSpan={columns.length + (hasActions ? 1 : 0)}
-                  className="border-b border-slate-200 py-10 text-center text-slate-400 dark:border-white/10 dark:text-slate-400"
+                  className="border-b border-slate-300 py-10 text-center text-slate-400 dark:border-white/20 dark:text-slate-400"
                 >
                   {emptyMessage}
                 </TableCell>
@@ -154,7 +166,7 @@ export default function DynamicPage<T extends object>({
       </div>
 
       <div className="mt-6 flex flex-col gap-3 pt-5 text-slate-600 dark:border-white/10 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[14px]">
+        <p className="text-[13px]">
           Menampilkan{" "}
           <span className="font-semibold text-slate-900 dark:text-slate-100">
             {items.length}
@@ -179,17 +191,20 @@ export default function DynamicPage<T extends object>({
               type="button"
               onClick={() => onPageChange?.(Math.max(currentPage - 1, 1))}
               disabled={currentPage === 1}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/[0.12]"
+              className={paginationButtonClass}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
+            <span className="min-w-12 text-center text-[13px] font-semibold">
+              {currentPage} / {totalPages}
+            </span>
             <Button
               type="button"
               onClick={() =>
                 onPageChange?.(Math.min(currentPage + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/[0.12]"
+              className={paginationButtonClass}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

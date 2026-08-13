@@ -14,7 +14,7 @@ export default function SummaryCards({
         return (
           <article
             key={card.key}
-            className={`${card.color} relative min-h-36 overflow-hidden rounded-xl p-5 text-white shadow-sm`}
+            className={`${card.color} relative min-h-36 overflow-hidden rounded-xl p-5 text-white`}
           >
             <Icon className="absolute right-5 top-5 size-8" />
             <p className="text-[14px] font-semibold">{card.title}</p>

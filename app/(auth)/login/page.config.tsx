@@ -1,14 +1,13 @@
 "use client";
 
 export type LoginFormValues = {
-  email: string;
+  identifier: string;
   password: string;
   rememberMe: boolean;
 };
 
 export const initialLoginForm: LoginFormValues = {
-  email: "",
+  identifier: "",
   password: "",
   rememberMe: false,
 };
-

@@ -134,8 +134,9 @@ export default function InnovationPage() {
         <div className="mx-auto w-full max-w-[1600px]">
           <AppPageHeader />
           <SummaryCards values={summaryValues} />
-          <div className="mt-5 [&>div]:!bg-white [&>div]:!text-slate-900 [&_table]:!text-slate-900 [&_th]:!text-slate-700 [&_td]:!text-slate-700">
+          <div className="mt-5 [&>div]:!bg-white [&>div]:!text-slate-200 [&_table]:!text-slate-100 [&_thead]:!border-slate-200 [&_tr]:!border-slate-200 [&_th]:!border-slate-100 [&_th]:!text-slate-700 [&_td]:!border-slate-200 [&_td]:!text-slate-700 [&_p]:!text-slate-600 [&_p_span]:!text-slate-100">
             <DynamicPage
+              className="border! border-neutral-200! shadow-none! ring-0! backdrop-blur-none! dark:bg-white"
               toolbar={toolbar}
               filterPanel={filtersUi}
               columns={columnFormats}

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import type { FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useState, type FormEvent } from "react";
 
 import type { LoginFormValues } from "../page.config";
 
@@ -18,6 +19,8 @@ export default function LoginForm({
   onChange,
   onSubmit,
 }: LoginFormProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <div className="flex min-h-[62vh] items-center justify-center bg-white px-6 py-12 sm:px-12 lg:min-h-screen lg:w-1/2 lg:px-16">
       <div className="w-full max-w-[460px]">
@@ -40,18 +43,18 @@ export default function LoginForm({
 
         <form className="space-y-7" onSubmit={onSubmit}>
           <div>
-            <label htmlFor="email" className="mb-2 block text-[14px] font-medium text-neutral-900">
-              Email
+            <label htmlFor="identifier" className="mb-2 block text-[14px] font-medium text-neutral-900">
+              Username atau Email
             </label>
             <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="identifier"
+              name="identifier"
+              type="text"
+              autoComplete="username"
               required
-              value={values.email}
-              onChange={(event) => onChange("email", event.target.value)}
-              placeholder="Masukkan email.."
+              value={values.identifier}
+              onChange={(event) => onChange("identifier", event.target.value)}
+              placeholder="Masukkan username atau email.."
               className="h-[46px] w-full rounded-[9px] border border-neutral-300 bg-[#f7f8fb] px-4 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-300 focus:border-[#ffb437] focus:ring-3 focus:ring-[#ffb437]/20"
             />
           </div>
@@ -60,17 +63,32 @@ export default function LoginForm({
             <label htmlFor="password" className="mb-2 block text-[14px] font-medium text-neutral-900">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={values.password}
-              onChange={(event) => onChange("password", event.target.value)}
-              placeholder="Masukkan password.."
-              className="h-[46px] w-full rounded-[9px] border border-neutral-300 bg-[#f7f8fb] px-4 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-300 focus:border-[#ffb437] focus:ring-3 focus:ring-[#ffb437]/20"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                value={values.password}
+                onChange={(event) => onChange("password", event.target.value)}
+                placeholder="Masukkan password.."
+                className="h-[46px] w-full rounded-[9px] border border-neutral-300 bg-[#f7f8fb] px-4 pr-12 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-300 focus:border-[#ffb437] focus:ring-3 focus:ring-[#ffb437]/20"
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-neutral-400 transition hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#ffb437]"
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4.5" />
+                ) : (
+                  <Eye className="size-4.5" />
+                )}
+              </button>
+            </div>
           </div>
 
           <label className="flex w-fit cursor-pointer items-center gap-3 text-[14px] font-semibold text-neutral-900">
