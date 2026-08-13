@@ -1,70 +1,95 @@
 "use client";
 
-import { useCallback, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
 import DynamicPage from "@/components/dynamic-page";
 import { toast } from "@/components/ui/toast";
-import FormData from "./components/form-data";
 import SummaryCards from "./components/summary-cards";
 import {
   columnFormats,
   filterPanel,
   headerToolbar,
   initialFilters,
-  initialFormValues,
-  initialInnovations,
   ITEMS_PER_PAGE,
-  type InnovationDto,
+  renderActions,
+  type InnovationTableDto,
   type InnovationFilters,
-  type InnovationFormValues,
 } from "./page.config";
 
 export default function InnovationPage() {
-  const [data, setData] = useState<InnovationDto[]>(initialInnovations);
+  const router = useRouter();
+  const [data, setData] = useState<InnovationTableDto[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [summaryValues, setSummaryValues] = useState({
+    total: 0,
+    initiative: 0,
+    trial: 0,
+    implementation: 0,
+    award: 0,
+  });
   const [filters, setFilters] = useState<InnovationFilters>(initialFilters);
   const [showFilterPanel, setShowFilterPanel] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [formValues, setFormValues] =
-    useState<InnovationFormValues>(initialFormValues);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredData = useMemo(
-    () =>
-      data.filter((item) =>
-        Object.entries(filters).every(
-          ([key, value]) =>
-            value === "all" || item[key as keyof InnovationDto] === value,
-        ),
-      ),
-    [data, filters],
-  );
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE)),
-    [filteredData.length],
-  );
-  const paginatedData = useMemo(
-    () =>
-      filteredData.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-      ),
-    [currentPage, filteredData],
+    () => Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)),
+    [total],
   );
   const activeFilterCount = useMemo(
     () => Object.values(filters).filter((value) => value !== "all").length,
     [filters],
   );
-  const summaryValues = useMemo(
-    () => ({
-      total: data.length,
-      initiative: data.filter((item) => item.stage === "Inisiatif").length,
-      trial: data.filter((item) => item.stage === "Uji Coba").length,
-      implementation: data.filter((item) => item.stage === "Penerapan").length,
-      award: data.filter((item) => item.awarded).length,
-    }),
-    [data],
-  );
+  const fetchInnovations = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(ITEMS_PER_PAGE),
+      });
+      Object.entries(filters).forEach(([key, value]) => params.set(key, value));
+      const response = await fetch(`/api/innovations?${params.toString()}`);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Gagal mengambil data inovasi.");
+      setData(result.data || []);
+      setTotal(result.total || 0);
+      setSummaryValues(result.summary || { total: 0, initiative: 0, trial: 0, implementation: 0, award: 0 });
+    } catch (error) {
+      toast.add({
+        title: "Gagal memuat inovasi",
+        description: error instanceof Error ? error.message : "Silakan coba kembali.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, filters]);
+
+  useEffect(() => {
+    // Fetch berjalan setelah dependency pagination/filter berubah.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchInnovations();
+  }, [fetchInnovations]);
+
+  const deleteInnovation = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/innovations/${id}`, { method: "DELETE" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Gagal menghapus inovasi.");
+      toast.add({ title: "Inovasi dihapus", description: "Data inovasi berhasil dihapus.", type: "success" });
+      setDeleteId(null);
+      await fetchInnovations();
+    } catch (error) {
+      toast.add({
+        title: "Gagal menghapus inovasi",
+        description: error instanceof Error ? error.message : "Silakan coba kembali.",
+        type: "error",
+      });
+    }
+  }, [fetchInnovations]);
 
   const setFilter = useCallback(
     (key: keyof InnovationFilters, value: string) => {
@@ -77,38 +102,10 @@ export default function InnovationPage() {
     setFilters(initialFilters);
     setCurrentPage(1);
   }, []);
-  const handleFormChange = useCallback(
-    (field: keyof InnovationFormValues, value: string) =>
-      setFormValues((current) => ({ ...current, [field]: value })),
-    [],
-  );
-  const handleSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setData((current) => [
-        ...current,
-        {
-          ...formValues,
-          id: `innovation-${Date.now()}`,
-          number: current.length + 1,
-          awarded: false,
-        },
-      ]);
-      setFormValues(initialFormValues);
-      setShowModal(false);
-      toast.add({
-        title: "Berhasil",
-        description: "Inovasi berhasil ditambahkan",
-        type: "success",
-      });
-    },
-    [formValues],
-  );
-
   const toolbar = useMemo(
     () =>
       headerToolbar({
-        onAdd: () => setShowModal(true),
+        onAdd: () => router.push("/innovations/create"),
         onExport: () =>
           toast.add({
             title: "Export Excel",
@@ -118,7 +115,7 @@ export default function InnovationPage() {
         setShowFilter: setShowFilterPanel,
         activeFilterCount,
       }),
-    [activeFilterCount],
+    [activeFilterCount, router],
   );
   const filtersUi = useMemo(
     () =>
@@ -134,30 +131,33 @@ export default function InnovationPage() {
         <div className="mx-auto w-full max-w-[1600px]">
           <AppPageHeader />
           <SummaryCards values={summaryValues} />
-          <div className="mt-5 [&>div]:!bg-white [&>div]:!text-slate-200 [&_table]:!text-slate-100 [&_thead]:!border-slate-200 [&_tr]:!border-slate-200 [&_th]:!border-slate-100 [&_th]:!text-slate-700 [&_td]:!border-slate-200 [&_td]:!text-slate-700 [&_p]:!text-slate-600 [&_p_span]:!text-slate-100">
+          <div className="mt-5 [&>div]:!bg-white [&>div]:!text-slate-700 [&_table]:!text-slate-700 [&_thead]:!border-slate-200 [&_tr]:!border-slate-200 [&_th]:!border-slate-100 [&_th]:!text-slate-700 [&_td]:!border-slate-200 [&_td]:!text-slate-700 [&_p]:!text-slate-600 [&_p_span]:!text-slate-900">
             <DynamicPage
               className="border! border-neutral-200! shadow-none! ring-0! backdrop-blur-none! dark:bg-white"
               toolbar={toolbar}
               filterPanel={filtersUi}
               columns={columnFormats}
-              items={paginatedData}
-              total={filteredData.length}
+              items={data}
+              total={total}
               currentPage={currentPage}
               totalPages={totalPages}
+              loading={loading}
               onPageChange={setCurrentPage}
-              emptyMessage="Tidak ada inovasi yang sesuai dengan filter"
+              emptyMessage="Tidak ada data inovasi yang tersedia."
               getRowId={(row) => row.id}
+              renderActions={(row) => renderActions({
+                row,
+                deleteId,
+                setDeleteId,
+                onView: (id) => router.push(`/innovations/${id}`),
+                onEdit: (id) => router.push(`/innovations/${id}?mode=edit`),
+                onIndicators: (id) => router.push(`/innovations/${id}/indicators`),
+                onDelete: deleteInnovation,
+              })}
             />
           </div>
         </div>
       </main>
-      <FormData
-        isOpen={showModal}
-        values={formValues}
-        onChange={handleFormChange}
-        onClose={() => setShowModal(false)}
-        onSubmit={handleSubmit}
-      />
     </AppSidebarLayout>
   );
 }

@@ -43,7 +43,10 @@ export default function LoginForm({
 
         <form className="space-y-7" onSubmit={onSubmit}>
           <div>
-            <label htmlFor="identifier" className="mb-2 block text-[14px] font-medium text-neutral-900">
+            <label
+              htmlFor="identifier"
+              className="mb-2 block text-[14px] font-medium text-neutral-900"
+            >
               Username atau Email
             </label>
             <input
@@ -60,7 +63,10 @@ export default function LoginForm({
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-2 block text-[14px] font-medium text-neutral-900">
+            <label
+              htmlFor="password"
+              className="mb-2 block text-[14px] font-medium text-neutral-900"
+            >
               Password
             </label>
             <div className="relative">
@@ -77,7 +83,9 @@ export default function LoginForm({
               />
               <button
                 type="button"
-                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                aria-label={
+                  showPassword ? "Sembunyikan password" : "Tampilkan password"
+                }
                 aria-pressed={showPassword}
                 onClick={() => setShowPassword((current) => !current)}
                 className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-neutral-400 transition hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#ffb437]"

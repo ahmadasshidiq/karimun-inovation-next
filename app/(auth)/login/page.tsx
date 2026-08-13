@@ -9,7 +9,8 @@ import { initialLoginForm, type LoginFormValues } from "./page.config";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [formValues, setFormValues] = useState<LoginFormValues>(initialLoginForm);
+  const [formValues, setFormValues] =
+    useState<LoginFormValues>(initialLoginForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -98,8 +99,9 @@ export default function LoginPage() {
             Dari Setiap Inovasi, Tercipta Kemajuan Kabupaten Karimun.
           </h2>
           <p className="mt-3 max-w-[740px] text-[16px] leading-snug text-white/95 sm:text-[16px] lg:text-[16px]">
-            Platform digital untuk mendukung pengelolaan, pelaporan, dan pengembangan
-            inovasi daerah di Provinsi Kepulauan Riau secara efektif dan transparan.
+            Platform digital untuk mendukung pengelolaan, pelaporan, dan
+            pengembangan inovasi daerah di Provinsi Kepulauan Riau secara
+            efektif dan transparan.
           </p>
         </div>
       </section>

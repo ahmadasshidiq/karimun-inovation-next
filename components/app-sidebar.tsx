@@ -127,6 +127,9 @@ const getPageTitle = (pathname: string) => {
 };
 
 type AppPageHeaderProps = {
+  title?: string;
+  description?: string;
+  actions?: ReactNode;
   userName?: string;
   userRole?: string;
 };
@@ -140,12 +143,15 @@ const getInitials = (name: string) =>
     .join("");
 
 export function AppPageHeader({
+  title: titleOverride,
+  description,
+  actions,
   userName,
   userRole,
 }: AppPageHeaderProps) {
   const { user, logout } = useSessionUser();
   const pathname = usePathname();
-  const title = getPageTitle(pathname);
+  const title = titleOverride ?? getPageTitle(pathname);
   const displayedName = userName ?? user?.fullname ?? "Pengguna";
   const displayedRole = userRole ?? user?.role ?? "-";
   const initials = getInitials(displayedName);
@@ -158,18 +164,20 @@ export function AppPageHeader({
   }).format(new Date());
 
   return (
-    <header className="mb-6 flex items-center justify-between gap-3 sm:mb-8 sm:gap-4">
-      <div>
+    <header className="mb-6 flex min-w-0 items-center justify-between gap-3 pl-8 sm:mb-8 sm:gap-4 sm:pl-0">
+      <div className="min-w-0">
         <h1 className="text-lg font-bold text-neutral-950 sm:text-xl">{title}</h1>
         <p
           suppressHydrationWarning
           className="mt-0.5 text-[13px] text-neutral-700"
         >
-          {formattedDate}
+          {description ?? formattedDate}
         </p>
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl p-1 text-left outline-none transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-[#ffb437]/40 sm:gap-3 sm:p-1.5">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        {actions}
+        <DropdownMenu>
+        <DropdownMenuTrigger className="group/profile flex items-center gap-2 rounded-xl p-1 text-left outline-none transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-[#ffb437]/40 sm:gap-3 sm:p-1.5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700 sm:size-11 sm:text-sm">
             {initials}
           </span>
@@ -177,7 +185,7 @@ export function AppPageHeader({
             <span className="block text-sm font-bold">{displayedName}</span>
             <span className="block text-xs text-neutral-700">{displayedRole}</span>
           </span>
-          <ChevronDown className="hidden size-4 text-neutral-500 sm:block" />
+          <ChevronDown className="size-4 shrink-0 text-neutral-500 transition-transform group-data-[state=open]/profile:rotate-180" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
@@ -201,7 +209,8 @@ export function AppPageHeader({
             Keluar
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }
@@ -437,11 +446,8 @@ export function AppSidebarLayout({
       }
     >
         <AppSidebar onLogout={onLogout} />
-        <SidebarInset className="min-w-0 bg-[#f7f8fc]">
-          <header className="sticky top-0 z-20 flex h-14 items-center border-b border-neutral-200 bg-white px-4 text-neutral-900 md:hidden">
-            <SidebarTrigger className="mr-3" />
-            <div className="text-sm font-semibold">Karimun Innovation</div>
-          </header>
+        <SidebarInset className="w-0 min-w-0 overflow-x-clip bg-[#f7f8fc]">
+          <SidebarTrigger className="fixed left-3 top-3 z-40 size-7 rounded-lg border border-neutral-200 bg-white text-neutral-800 shadow-md hover:bg-neutral-50 [&_svg]:!size-4 md:hidden" />
           {children}
         </SidebarInset>
       </SidebarProvider>

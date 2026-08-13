@@ -45,6 +45,7 @@ export type DynamicPageProps<T = object> = {
   className?: string;
   tableClassName?: string;
   bodyRowClassName?: string;
+  showFooter?: boolean;
   onPageChange?: (page: number) => void;
   renderActions?: (row: T) => ReactNode;
   getRowId?: (row: T, index: number) => string;
@@ -63,6 +64,7 @@ export default function DynamicPage<T extends object>({
   className,
   tableClassName,
   bodyRowClassName,
+  showFooter = true,
   onPageChange,
   renderActions,
   getRowId,
@@ -83,7 +85,7 @@ export default function DynamicPage<T extends object>({
 
       <div
         className={cn(
-          "overflow-x-auto transition-opacity duration-200",
+          "min-w-0 transition-opacity duration-200",
           loading && "opacity-60",
         )}
       >
@@ -152,10 +154,10 @@ export default function DynamicPage<T extends object>({
                 );
               })
             ) : (
-              <TableRow className="border-slate-300 hover:bg-transparent dark:border-white/20">
+              <TableRow className="border-slate-300 bg-slate-50/80 hover:bg-slate-50 dark:border-white/20 dark:bg-white/[0.04] dark:hover:bg-white/[0.04]">
                 <TableCell
                   colSpan={columns.length + (hasActions ? 1 : 0)}
-                  className="border-b border-slate-300 py-10 text-center text-slate-400 dark:border-white/20 dark:text-slate-400"
+                  className="border-b border-slate-300 py-10 text-center !text-slate-500 dark:border-white/20 dark:!text-slate-400"
                 >
                   {emptyMessage}
                 </TableCell>
@@ -165,6 +167,7 @@ export default function DynamicPage<T extends object>({
         </Table>
       </div>
 
+      {showFooter ? (
       <div className="mt-6 flex flex-col gap-3 pt-5 text-slate-600 dark:border-white/10 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[13px]">
           Menampilkan{" "}
@@ -211,6 +214,7 @@ export default function DynamicPage<T extends object>({
           </div>
         ) : null}
       </div>
+      ) : null}
     </div>
   );
 }

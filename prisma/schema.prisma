@@ -23,23 +23,24 @@ model Role {
 }
 
 model User {
-  id            String      @id @default(uuid()) @db.Uuid
-  roleId        String      @map("role_id") @db.Uuid
-  institutionId String      @map("institution_id") @db.Uuid
-  username      String      @unique @db.VarChar(100)
-  email         String?     @unique @db.VarChar(255)
-  fullname      String      @db.VarChar(255)
-  nip           String?     @unique @db.VarChar(50)
-  phone         String?     @db.VarChar(30)
-  status        Status      @default(ACTIVE)
-  currentToken  String?     @map("current_token") @db.Text
-  password      String      @db.Text
-  salt          String      @db.VarChar(255)
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt     DateTime?   @map("deleted_at") @db.Timestamptz(3)
-  role          Role        @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id            String       @id @default(uuid()) @db.Uuid
+  roleId        String       @map("role_id") @db.Uuid
+  institutionId String       @map("institution_id") @db.Uuid
+  username      String       @unique @db.VarChar(100)
+  email         String?      @unique @db.VarChar(255)
+  fullname      String       @db.VarChar(255)
+  nip           String?      @unique @db.VarChar(50)
+  phone         String?      @db.VarChar(30)
+  status        Status       @default(ACTIVE)
+  currentToken  String?      @map("current_token") @db.Text
+  password      String       @db.Text
+  salt          String       @db.VarChar(255)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime?    @map("deleted_at") @db.Timestamptz(3)
+  role          Role         @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  innovations   Innovation[]
 
   @@index([roleId])
   @@index([institutionId])
@@ -83,4 +84,39 @@ model Nomenclature {
 
   @@index([status])
   @@map("nomenklatur")
+}
+
+model Innovation {
+  id                   String    @id @default(uuid()) @db.Uuid
+  name                 String    @db.VarChar(255)
+  latitude             Decimal?  @db.Decimal(10, 8)
+  longitude            Decimal?  @db.Decimal(11, 8)
+  status               Status    @default(ACTIVE)
+  initiatorType        String?   @map("initiator_type") @db.VarChar(100)
+  initiatorName        String?   @map("initiator_name") @db.VarChar(255)
+  type                 String?   @db.VarChar(100)
+  classification       String?   @db.VarChar(100)
+  innovationForm       String?   @map("innovation_form") @db.VarChar(100)
+  thematic             String?   @map("thematic") @db.VarChar(255)
+  pkpnCluster          String?   @map("pkpn_cluster") @db.VarChar(255)
+  pkpnSubCluster       String?   @map("pkpn_sub_cluster") @db.VarChar(255)
+  governmentAffairs    String?   @map("government_affairs") @db.VarChar(255)
+  trialPeriod          DateTime? @map("trial_period") @db.Date
+  implementationPeriod DateTime? @map("implementation_period") @db.Date
+  isDevelopment        Boolean   @default(false) @map("is_development")
+  description          String?   @db.Text
+  purpose              String?   @db.Text
+  files                Json      @default("[]")
+  createdById          String    @map("created_by") @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz(3)
+  createdBy            User      @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([createdById])
+  @@index([status])
+  @@index([type])
+  @@index([classification])
+  @@index([deletedAt])
+  @@map("innovations")
 }
