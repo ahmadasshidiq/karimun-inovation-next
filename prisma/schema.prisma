@@ -94,6 +94,7 @@ model Innovation {
   status               Status                          @default(ACTIVE)
   initiatorType        String?                         @map("initiator_type") @db.VarChar(100)
   initiatorName        String?                         @map("initiator_name") @db.VarChar(255)
+  stage                String?                         @map("stage") @db.VarChar(255)
   type                 String?                         @db.VarChar(100)
   classification       String?                         @db.VarChar(100)
   innovationForm       String?                         @map("innovation_form") @db.VarChar(100)

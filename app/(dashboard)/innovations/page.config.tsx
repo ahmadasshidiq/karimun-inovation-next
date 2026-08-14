@@ -51,6 +51,7 @@ export type InnovationDto = {
   initiatorType: string | null;
   initiatorName: string | null;
   type: string | null;
+  stage: string | null;
   classification: string | null;
   innovationForm: string | null;
   thematic: string | null;
@@ -89,6 +90,7 @@ export type InnovationEditorValues = {
   initiatorType: string;
   initiatorName: string;
   type: string;
+  stage: string;
   classification: string;
   innovationForm: string;
   thematic: string;
@@ -111,6 +113,7 @@ export const initialInnovationEditorValues: InnovationEditorValues = {
   initiatorType: "OPD",
   initiatorName: "",
   type: "Digital",
+  stage: "Inisiatif",
   classification: "Inovasi Perangkat Daerah",
   innovationForm: "Digital",
   thematic: "",
@@ -150,6 +153,8 @@ export const innovationThematicOptions = [
   "Memperkuat kehidupan yang harmonis dengan lingkungan, alam, dan budaya",
 ];
 
+export const innovationStageOptions = ["Inisiatif", "Uji Coba", "Penerapan"];
+
 export const MAX_SUPPORTING_FILE_SIZE = 2 * 1024 * 1024;
 
 export type InnovationTableDto = {
@@ -160,7 +165,7 @@ export type InnovationTableDto = {
   innovationForm: string;
   governmentAffair: string;
   initiator: string;
-  stage: InnovationStage;
+  stage: string;
   trialDate: string;
   ImplementationDate: string;
   DevelopmentDate: string;
@@ -216,27 +221,6 @@ export const initialFormValues: InnovationFormValues = {
   skor: 0,
 };
 
-export const initialInnovations: InnovationTableDto[] = [
-  {
-    id: "innovation-1",
-    number: 1,
-    organization: "Badan Pendapatan Daerah",
-    innovationName: "SIASAT TOP",
-    innovationForm: "Digital",
-    governmentAffair: "Keuangan",
-    initiator: "Ahmad Ashidiq",
-    stage: "Penerapan",
-    trialDate: "2025-08-10",
-    ImplementationDate: "2026-08-10",
-    DevelopmentDate: "2024-08-10",
-    latitude: "0.9867",
-    longitude: "103.4381",
-    awardFileUrl: "",
-    awarded: true,
-    skor: 85,
-  },
-];
-
 export const summaryCards: SummaryCard[] = [
   {
     key: "total",
@@ -281,11 +265,25 @@ export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
   {
     key: "stage",
     title: "Tahapan Inovasi",
-    formatter: (value) => (
-      <span className="inline-flex min-w-32 justify-center rounded-full bg-emerald-200 px-4 py-1 text-xs font-medium text-emerald-700">
-        {String(value)}
-      </span>
-    ),
+    formatter: (value) => {
+      const stage = String(value) as InnovationStage;
+
+      const stageStyles: Record<InnovationStage, string> = {
+        Inisiatif: "bg-orange-100 text-orange-700",
+        "Uji Coba": "bg-rose-100 text-rose-700",
+        Penerapan: "bg-emerald-100 text-emerald-700",
+      };
+
+      return (
+        <span
+          className={`inline-flex min-w-32 justify-center rounded-full px-4 py-1 text-xs font-medium ${
+            stageStyles[stage] ?? "bg-gray-100 text-gray-700"
+          }`}
+        >
+          {stage}
+        </span>
+      );
+    },
   },
   { key: "initiator", title: "Nama Inisiator" },
   { key: "governmentAffair", title: "Urusan Pemerintahan Utama" },
