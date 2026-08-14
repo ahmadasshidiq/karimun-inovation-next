@@ -7,15 +7,11 @@ import { ArrowLeft } from "lucide-react";
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { parseApiError } from "@/lib/helper/response-api";
 
 import IndicatorSummary from "./components/indicator-summary";
 import IndicatorTable from "./components/indicator-table";
 import { indicators, type IndicatorDocument } from "./page.config";
-
-const parseApiError = async (response: Response, fallback: string) => {
-  const result = await response.json().catch(() => ({}));
-  return typeof result.message === "string" ? result.message : fallback;
-};
 
 export default function InnovationIndicatorsPage({
   params,

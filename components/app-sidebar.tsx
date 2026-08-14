@@ -59,6 +59,9 @@ export type SessionUser = {
   email: string | null;
   fullname: string;
   role: string;
+  permission:
+    | { all?: boolean }
+    | Array<{ model: string; actions: string[] }>;
   institution: string;
   nomenclature: string;
 };
@@ -78,41 +81,82 @@ export const useSessionUser = () => useContext(SessionContext);
 type SidebarChild = {
   title: string;
   href: string;
+  access: SidebarAccess;
+};
+
+type SidebarAccess = {
+  model: string;
+  action: string;
 };
 
 type SidebarItem = {
   title: string;
   href?: string;
   icon: typeof Layers3;
+  access?: SidebarAccess;
   children?: SidebarChild[];
 };
 
 const menuItems: SidebarItem[] = [
-  { title: "Dashboard", href: "/dashboard", icon: Layers3 },
-  { title: "Inovasi Perangkat Daerah", href: "/innovations", icon: Sparkles },
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: Layers3,
+    access: { model: "dashboard", action: "view" },
+  },
+  {
+    title: "Inovasi Perangkat Daerah",
+    href: "/innovations",
+    icon: Sparkles,
+    access: { model: "innovations", action: "get-all" },
+  },
   {
     title: "Lomba Inovasi Perangkat Daerah",
     icon: Trophy,
     children: [
-      { title: "Inovasi OPD", href: "/lomba-inovasi/inovasi-opd" },
-      { title: "Papan Peringkat", href: "/lomba-inovasi/papan-peringkat" },
+      {
+        title: "Inovasi OPD",
+        href: "/lomba-inovasi/inovasi-opd",
+        access: { model: "innovation-competitions", action: "get-all" },
+      },
+      {
+        title: "Papan Peringkat",
+        href: "/lomba-inovasi/papan-peringkat",
+        access: { model: "innovation-competitions", action: "get-all" },
+      },
     ],
   },
   {
     title: "Laporan Diklat",
     icon: FileText,
     children: [
-      { title: "Data Laporan Diklat", href: "/laporan-diklat" },
+      {
+        title: "Data Laporan Diklat",
+        href: "/laporan-diklat",
+        access: { model: "training-reports", action: "get-all" },
+      },
       {
         title: "Konfigurasi Akun Diklat",
         href: "/laporan-diklat/konfigurasi-akun",
+        access: { model: "training-reports", action: "update" },
       },
     ],
   },
   {
     title: "Pengaturan",
     icon: Settings,
-    children: [{ title: "Akun", href: "/pengaturan/akun" }],
+    children: [
+      {
+        title: "Role",
+        href: "/settings/roles",
+        access: { model: "roles", action: "get-all" },
+      },
+      {
+        title: "Akun",
+        href: "/settings/accounts",
+        access: { model: "users", action: "get-by-id" },
+      },
+    ],
   },
 ];
 
@@ -166,7 +210,9 @@ export function AppPageHeader({
   return (
     <header className="mb-6 flex min-w-0 items-center justify-between gap-3 pl-8 sm:mb-8 sm:gap-4 sm:pl-0">
       <div className="min-w-0">
-        <h1 className="text-lg font-bold text-neutral-950 sm:text-xl">{title}</h1>
+        <h1 className="text-lg font-bold text-neutral-950 sm:text-xl">
+          {title}
+        </h1>
         <p
           suppressHydrationWarning
           className="mt-0.5 text-[13px] text-neutral-700"
@@ -177,38 +223,40 @@ export function AppPageHeader({
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {actions}
         <DropdownMenu>
-        <DropdownMenuTrigger className="group/profile flex items-center gap-2 rounded-xl p-1 text-left outline-none transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-[#ffb437]/40 sm:gap-3 sm:p-1.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700 sm:size-11 sm:text-sm">
-            {initials}
-          </span>
-          <span className="hidden sm:block">
-            <span className="block text-sm font-bold">{displayedName}</span>
-            <span className="block text-xs text-neutral-700">{displayedRole}</span>
-          </span>
-          <ChevronDown className="size-4 shrink-0 text-neutral-500 transition-transform group-data-[state=open]/profile:rotate-180" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          sideOffset={8}
-          className="w-48 bg-white p-1.5 text-neutral-900"
-        >
-          <DropdownMenuItem
-            render={<Link href="/pengaturan/akun" />}
-            className="h-9 cursor-pointer text-sm"
+          <DropdownMenuTrigger className="group/profile flex items-center gap-2 rounded-xl p-1 text-left outline-none transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-[#ffb437]/40 sm:gap-3 sm:p-1.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700 sm:size-11 sm:text-sm">
+              {initials}
+            </span>
+            <span className="hidden sm:block">
+              <span className="block text-sm font-bold">{displayedName}</span>
+              <span className="block text-xs text-neutral-700">
+                {displayedRole}
+              </span>
+            </span>
+            <ChevronDown className="size-4 shrink-0 text-neutral-500 transition-transform group-data-[state=open]/profile:rotate-180" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={8}
+            className="w-48 bg-white p-1.5 text-neutral-900"
           >
-            <UserRound className="size-4" />
-            Profil
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            className="h-9 cursor-pointer text-sm"
-            onClick={() => void logout()}
-          >
-            <LogOut className="size-4" />
-            Keluar
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+            <DropdownMenuItem
+              render={<Link href="/settings/accounts" />}
+              className="h-9 cursor-pointer text-sm"
+            >
+              <UserRound className="size-4" />
+              Profil
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              className="h-9 cursor-pointer text-sm"
+              onClick={() => void logout()}
+            >
+              <LogOut className="size-4" />
+              Keluar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </header>
@@ -220,7 +268,7 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({ onLogout }: AppSidebarProps) {
-  const { logout } = useSessionUser();
+  const { user, logout } = useSessionUser();
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<string[]>([
@@ -246,6 +294,30 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
     void logout();
   };
 
+  const hasAccess = useCallback(
+    (access: SidebarAccess) => {
+      if (!user) return false;
+      if (user.role === "Super Admin") return true;
+      if (!Array.isArray(user.permission)) return user.permission?.all === true;
+
+      return user.permission.some(
+        (permission) =>
+          permission.model === access.model &&
+          permission.actions.includes(access.action),
+      );
+    },
+    [user],
+  );
+
+  const accessibleMenuItems = menuItems.flatMap((item) => {
+    if (item.children) {
+      const children = item.children.filter((child) => hasAccess(child.access));
+      return children.length ? [{ ...item, children }] : [];
+    }
+
+    return item.access && hasAccess(item.access) ? [item] : [];
+  });
+
   return (
     <Sidebar
       collapsible="icon"
@@ -270,7 +342,7 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-2 group-data-[collapsible=icon]:items-center">
-              {menuItems.map((item) => {
+              {accessibleMenuItems.map((item) => {
                 const Icon = item.icon;
                 const hasActiveChild = item.children?.some(
                   (child) => pathname === child.href,
@@ -431,20 +503,20 @@ export function AppSidebarLayout({
   return (
     <SessionContext.Provider value={{ user, logout }}>
       <SidebarProvider
-      defaultOpen={defaultOpen}
-      style={
-        {
-          "--sidebar-width": "19rem",
-          "--sidebar-width-icon": "5rem",
-          "--sidebar": "#ffffff",
-          "--sidebar-foreground": "#171717",
-          "--sidebar-accent": "#fff7e6",
-          "--sidebar-accent-foreground": "#171717",
-          "--sidebar-border": "#e5e5e5",
-          "--sidebar-ring": "#ffb437",
-        } as React.CSSProperties
-      }
-    >
+        defaultOpen={defaultOpen}
+        style={
+          {
+            "--sidebar-width": "19rem",
+            "--sidebar-width-icon": "5rem",
+            "--sidebar": "#ffffff",
+            "--sidebar-foreground": "#171717",
+            "--sidebar-accent": "#fff7e6",
+            "--sidebar-accent-foreground": "#171717",
+            "--sidebar-border": "#e5e5e5",
+            "--sidebar-ring": "#ffb437",
+          } as React.CSSProperties
+        }
+      >
         <AppSidebar onLogout={onLogout} />
         <SidebarInset className="w-0 min-w-0 overflow-x-clip bg-[#f7f8fc]">
           <SidebarTrigger className="fixed left-3 top-3 z-40 size-7 rounded-lg border border-neutral-200 bg-white text-neutral-800 shadow-md hover:bg-neutral-50 [&_svg]:!size-4 md:hidden" />

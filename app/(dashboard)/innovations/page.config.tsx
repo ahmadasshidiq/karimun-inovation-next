@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import type { DefaultColumnFormat } from "@/components/dynamic-page";
+import { formatDateId } from "@/lib/helper/date";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -244,20 +245,6 @@ export const summaryCards: SummaryCard[] = [
   { key: "award", title: "Penghargaan", color: "bg-[#a97800]", icon: Trophy },
 ];
 
-const formatTableDate = (value: unknown) => {
-  if (typeof value !== "string" || !value.trim()) return "-";
-
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("id-ID", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-};
-
 export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
   { key: "number", title: "#", formatter: (value) => String(value) },
   { key: "organization", title: "Nama Akun" },
@@ -290,17 +277,17 @@ export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
   {
     key: "trialDate",
     title: "Waktu Uji Coba Inovasi",
-    formatter: formatTableDate,
+    formatter: (value) => formatDateId(value),
   },
   {
     key: "ImplementationDate",
     title: "Waktu Penerapan Inovasi",
-    formatter: formatTableDate,
+    formatter: (value) => formatDateId(value),
   },
   {
     key: "DevelopmentDate",
     title: "Waktu Pengembangan Inovasi",
-    formatter: formatTableDate,
+    formatter: (value) => formatDateId(value),
   },
   {
     key: "skor",
@@ -514,7 +501,7 @@ export const headerToolbar = ({
         type="button"
         variant="outline"
         onClick={() => setShowFilter((current) => !current)}
-        className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 text-xs font-semibold text-neutral-800 hover:bg-neutral-50"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300! bg-white! px-4 text-xs font-semibold text-neutral-800! hover:bg-neutral-100! hover:text-neutral-900!"
       >
         <Filter className="size-4" />
         Filter
@@ -528,7 +515,7 @@ export const headerToolbar = ({
         type="button"
         variant="outline"
         onClick={onExport}
-        className="inline-flex h-9 items-center gap-2 rounded-md border border-emerald-500 bg-white px-4 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
+        className="inline-flex h-9 items-center gap-2 rounded-md border border-emerald-500! bg-white! px-4 text-xs font-semibold text-emerald-600! hover:bg-emerald-50! hover:text-emerald-700!"
       >
         <Download className="size-4" />
         Export Excel

@@ -45,6 +45,7 @@ export async function GET() {
         email: user.email,
         fullname: user.fullname,
         role: user.role.name,
+        permission: user.role.permission,
         institution: user.institution.name,
         nomenclature: user.institution.nomenclature.name,
       },
