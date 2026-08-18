@@ -156,6 +156,16 @@ const menuItems: SidebarItem[] = [
         href: "/settings/accounts",
         access: { model: "users", action: "get-by-id" },
       },
+      {
+        title: "Pengumuman",
+        href: "/settings/announcements",
+        access: { model: "announcements", action: "get-all" },
+      },
+      {
+        title: "Konfigurasi Dashboard",
+        href: "/settings/dashboard-configuration",
+        access: { model: "dashboard-configurations", action: "get-by-id" },
+      },
     ],
   },
 ];

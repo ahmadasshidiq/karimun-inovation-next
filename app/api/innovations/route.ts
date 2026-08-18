@@ -8,12 +8,13 @@ import { prisma } from "@/lib/prisma";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
-const stageOf = (trial: Date | null, implementation: Date | null) => {
-  const now = new Date();
-  if (implementation && implementation <= now) return "Penerapan";
-  if (trial && trial <= now) return "Uji Coba";
-  return "Inisiatif";
-};
+const assessmentGroups = [
+  { subject: "Kelembagaan", indicators: [1, 2, 3, 4, 5], maximumScore: 10 },
+  { subject: "Tata Kelola", indicators: [6, 7, 8, 9, 10], maximumScore: 6 },
+  { subject: "Pelayanan", indicators: [11, 12, 13, 14, 15], maximumScore: 7 },
+  { subject: "Dampak", indicators: [16, 17, 18], maximumScore: 8 },
+  { subject: "Keberlanjutan", indicators: [19, 20], maximumScore: 6 },
+];
 
 const dateOnly = (value: Date | null) =>
   value ? value.toISOString().slice(0, 10) : "";
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     where: { deletedAt: null },
     include: {
       createdBy: { include: { institution: true } },
-      indicatorAssessments: { select: { score: true } },
+      indicatorAssessments: { select: { indicatorId: true, score: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -89,6 +90,31 @@ export async function GET(request: NextRequest) {
   );
 
   const offset = (page - 1) * limit;
+  const totalScore = mapped.reduce((total, item) => total + item.skor, 0);
+  const innovationCount = mapped.length;
+  const assessmentData = assessmentGroups.map((group) => {
+    const score = records.reduce(
+      (total, innovation) =>
+        total +
+        innovation.indicatorAssessments.reduce(
+          (subtotal, assessment) =>
+            group.indicators.includes(assessment.indicatorId)
+              ? subtotal + Number(assessment.score)
+              : subtotal,
+          0,
+        ),
+      0,
+    );
+    const maximumScore = group.maximumScore * innovationCount;
+
+    return {
+      subject: group.subject,
+      score,
+      maximumScore,
+      value: maximumScore > 0 ? (score / maximumScore) * 100 : 0,
+    };
+  });
+
   return NextResponse.json({
     data: filtered.slice(offset, offset + limit).map((item, index) => ({
       ...item,
@@ -101,7 +127,25 @@ export async function GET(request: NextRequest) {
       trial: mapped.filter((item) => item.stage === "Uji Coba").length,
       implementation: mapped.filter((item) => item.stage === "Penerapan").length,
       award: mapped.filter((item) => item.awarded).length,
+      totalScore,
+      averageScore: mapped.length > 0 ? totalScore / mapped.length : 0,
     },
+    mapData: mapped
+      .filter(
+        (item) =>
+          Number.isFinite(Number(item.latitude)) &&
+          Number.isFinite(Number(item.longitude)) &&
+          item.latitude !== "" &&
+          item.longitude !== "",
+      )
+      .map((item) => ({
+        id: item.id,
+        name: item.innovationName,
+        institution: item.organization,
+        latitude: Number(item.latitude),
+        longitude: Number(item.longitude),
+      })),
+    assessmentData,
   });
 }
 

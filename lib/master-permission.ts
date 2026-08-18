@@ -68,4 +68,12 @@ export const MASTER_PERMISSIONS: MasterPermission[] = [
     model: "innovation-documents",
     actions: ["get-all", "get-by-id", "upload", "download", "delete"],
   },
+  {
+    model: "announcements",
+    actions: ["get-all", "get-by-id", "create", "update", "delete"],
+  },
+  {
+    model: "dashboard-configurations",
+    actions: ["get-by-id", "update"],
+  },
 ];

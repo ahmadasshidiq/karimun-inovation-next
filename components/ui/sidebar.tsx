@@ -32,6 +32,8 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
+let persistedSidebarOpen: boolean | undefined
+
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
   open: boolean
@@ -71,11 +73,36 @@ function SidebarProvider({
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
+  const [_open, _setOpen] = React.useState(
+    () => persistedSidebarOpen ?? defaultOpen
+  )
   const open = openProp ?? _open
+
+  React.useEffect(() => {
+    if (openProp !== undefined) return
+
+    const savedState = document.cookie
+      .split("; ")
+      .find((cookie) => cookie.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+      ?.split("=")[1]
+
+    if (savedState !== "true" && savedState !== "false") return
+
+    const nextOpen = savedState === "true"
+    persistedSidebarOpen = nextOpen
+
+    if (nextOpen !== _open) {
+      // Sinkronkan state ketika aplikasi dibuka ulang dari cookie yang tersimpan.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      _setOpen(nextOpen)
+    }
+  }, [openProp, _open])
+
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value
+      persistedSidebarOpen = openState
+
       if (setOpenProp) {
         setOpenProp(openState)
       } else {
