@@ -79,7 +79,7 @@ export default function LoginForm({
                 value={values.password}
                 onChange={(event) => onChange("password", event.target.value)}
                 placeholder="Masukkan password.."
-                className="h-[46px] w-full rounded-[9px] border border-neutral-300 bg-[#f7f8fb] px-4 pr-12 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-300 focus:border-[#ffb437] focus:ring-3 focus:ring-[#ffb437]/20"
+                className="h-[46px] w-full rounded-[9px] border border-neutral-300 bg-[#f7f8fb] px-4 pr-12 text-[14px] text-neutral-900 outline-none transition placeholder:text-neutral-300 focus:border-[#ffb437] focus:ring-3 focus:ring-[#ffb437]/20 [&::-ms-clear]:hidden [&::-ms-reveal]:hidden"
               />
               <button
                 type="button"

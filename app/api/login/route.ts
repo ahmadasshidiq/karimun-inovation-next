@@ -45,6 +45,8 @@ export async function POST(request: Request) {
       },
     });
 
+    console.log("User found:", user);
+
     if (!user) {
       scryptSync(password, "invalid-login-salt", 64);
       return unauthorizedResponse();

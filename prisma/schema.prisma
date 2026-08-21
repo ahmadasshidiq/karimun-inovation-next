@@ -23,24 +23,31 @@ model Role {
 }
 
 model User {
-  id            String       @id @default(uuid()) @db.Uuid
-  roleId        String       @map("role_id") @db.Uuid
-  institutionId String       @map("institution_id") @db.Uuid
-  username      String       @unique @db.VarChar(100)
-  email         String?      @unique @db.VarChar(255)
-  fullname      String       @db.VarChar(255)
-  nip           String?      @unique @db.VarChar(50)
-  phone         String?      @db.VarChar(30)
-  status        Status       @default(ACTIVE)
-  currentToken  String?      @map("current_token") @db.Text
-  password      String       @db.Text
-  salt          String       @db.VarChar(255)
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt     DateTime?    @map("deleted_at") @db.Timestamptz(3)
-  role          Role         @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  innovations   Innovation[]
+  id                            String                       @id @default(uuid()) @db.Uuid
+  roleId                        String                       @map("role_id") @db.Uuid
+  institutionId                 String                       @map("institution_id") @db.Uuid
+  username                      String                       @unique @db.VarChar(100)
+  email                         String?                      @unique @db.VarChar(255)
+  fullname                      String                       @db.VarChar(255)
+  nip                           String?                      @unique @db.VarChar(50)
+  phone                         String?                      @db.VarChar(30)
+  status                        Status                       @default(ACTIVE)
+  currentToken                  String?                      @map("current_token") @db.Text
+  password                      String                       @db.Text
+  salt                          String                       @db.VarChar(255)
+  createdAt                     DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                     DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt                     DateTime?                    @map("deleted_at") @db.Timestamptz(3)
+  role                          Role                         @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  institution                   Institution                  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  innovations                   Innovation[]
+  competitionParticipants       CompetitionParticipant[]     @relation("ParticipantCreatedBy")
+  competitionVerifications      CompetitionVerification[]
+  competitionJudgeAssignments   CompetitionJudgeAssignment[] @relation("AssignedJudge")
+  competitionAssignmentsCreated CompetitionJudgeAssignment[] @relation("AssignmentCreatedBy")
+  competitionAssessments        CompetitionAssessment[]
+  competitionResultsFinalized   CompetitionResult[]
+  competitionActivityLogs       CompetitionActivityLog[]
 
   @@index([roleId])
   @@index([institutionId])
@@ -50,22 +57,23 @@ model User {
 }
 
 model Institution {
-  id                  String        @id @default(uuid()) @db.Uuid
-  nomenclatureId      String        @map("nomenklatur_id") @db.Uuid
-  name                String        @db.VarChar(255)
-  type                String        @db.VarChar(100)
-  status              Status        @default(ACTIVE)
-  parentInstitutionId String?       @map("parent_institution_id") @db.Uuid
-  address             String?       @db.Text
-  latitude            Decimal?      @db.Decimal(10, 8)
-  longitude           Decimal?      @db.Decimal(11, 8)
-  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt           DateTime?     @map("deleted_at") @db.Timestamptz(3)
-  nomenclature        Nomenclature  @relation(fields: [nomenclatureId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  parentInstitution   Institution?  @relation("InstitutionHierarchy", fields: [parentInstitutionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  childInstitutions   Institution[] @relation("InstitutionHierarchy")
-  users               User[]
+  id                      String                   @id @default(uuid()) @db.Uuid
+  nomenclatureId          String                   @map("nomenklatur_id") @db.Uuid
+  name                    String                   @db.VarChar(255)
+  type                    String                   @db.VarChar(100)
+  status                  Status                   @default(ACTIVE)
+  parentInstitutionId     String?                  @map("parent_institution_id") @db.Uuid
+  address                 String?                  @db.Text
+  latitude                Decimal?                 @db.Decimal(10, 8)
+  longitude               Decimal?                 @db.Decimal(11, 8)
+  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt               DateTime?                @map("deleted_at") @db.Timestamptz(3)
+  nomenclature            Nomenclature             @relation(fields: [nomenclatureId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  parentInstitution       Institution?             @relation("InstitutionHierarchy", fields: [parentInstitutionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  childInstitutions       Institution[]            @relation("InstitutionHierarchy")
+  users                   User[]
+  competitionParticipants CompetitionParticipant[]
 
   @@index([nomenclatureId])
   @@index([parentInstitutionId])
@@ -87,31 +95,32 @@ model Nomenclature {
 }
 
 model Innovation {
-  id                   String    @id @default(uuid()) @db.Uuid
-  name                 String    @db.VarChar(255)
-  latitude             Decimal?  @db.Decimal(10, 8)
-  longitude            Decimal?  @db.Decimal(11, 8)
-  status               Status    @default(ACTIVE)
-  initiatorType        String?   @map("initiator_type") @db.VarChar(100)
-  initiatorName        String?   @map("initiator_name") @db.VarChar(255)
-  type                 String?   @db.VarChar(100)
-  classification       String?   @db.VarChar(100)
-  innovationForm       String?   @map("innovation_form") @db.VarChar(100)
-  thematic             String?   @map("thematic") @db.VarChar(255)
-  pkpnCluster          String?   @map("pkpn_cluster") @db.VarChar(255)
-  pkpnSubCluster       String?   @map("pkpn_sub_cluster") @db.VarChar(255)
-  governmentAffairs    String?   @map("government_affairs") @db.VarChar(255)
-  trialPeriod          DateTime? @map("trial_period") @db.Date
-  implementationPeriod DateTime? @map("implementation_period") @db.Date
-  isDevelopment        Boolean   @default(false) @map("is_development")
-  description          String?   @db.Text
-  purpose              String?   @db.Text
-  files                Json      @default("[]")
-  createdById          String    @map("created_by") @db.Uuid
-  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz(3)
-  createdBy            User      @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id                      String                   @id @default(uuid()) @db.Uuid
+  name                    String                   @db.VarChar(255)
+  latitude                Decimal?                 @db.Decimal(10, 8)
+  longitude               Decimal?                 @db.Decimal(11, 8)
+  status                  Status                   @default(ACTIVE)
+  initiatorType           String?                  @map("initiator_type") @db.VarChar(100)
+  initiatorName           String?                  @map("initiator_name") @db.VarChar(255)
+  type                    String?                  @db.VarChar(100)
+  classification          String?                  @db.VarChar(100)
+  innovationForm          String?                  @map("innovation_form") @db.VarChar(100)
+  thematic                String?                  @map("thematic") @db.VarChar(255)
+  pkpnCluster             String?                  @map("pkpn_cluster") @db.VarChar(255)
+  pkpnSubCluster          String?                  @map("pkpn_sub_cluster") @db.VarChar(255)
+  governmentAffairs       String?                  @map("government_affairs") @db.VarChar(255)
+  trialPeriod             DateTime?                @map("trial_period") @db.Date
+  implementationPeriod    DateTime?                @map("implementation_period") @db.Date
+  isDevelopment           Boolean                  @default(false) @map("is_development")
+  description             String?                  @db.Text
+  purpose                 String?                  @db.Text
+  files                   Json                     @default("[]")
+  createdById             String                   @map("created_by") @db.Uuid
+  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt               DateTime?                @map("deleted_at") @db.Timestamptz(3)
+  createdBy               User                     @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  competitionParticipants CompetitionParticipant[]
 
   @@index([createdById])
   @@index([status])
@@ -119,4 +128,215 @@ model Innovation {
   @@index([classification])
   @@index([deletedAt])
   @@map("innovations")
+}
+
+enum CompetitionPeriodStatus {
+  DRAFT
+  REGISTRATION
+  VERIFICATION
+  ASSESSMENT
+  FINALIZATION
+  COMPLETED
+}
+
+enum CompetitionParticipantStatus {
+  DRAFT
+  SUBMITTED
+  WAITING_VERIFICATION
+  NEEDS_REVISION
+  RESUBMITTED
+  VERIFIED
+  REJECTED
+  UNDER_ASSESSMENT
+  ASSESSED
+  FINALIST
+}
+
+enum CompetitionDocumentStatus {
+  UNVERIFIED
+  VALID
+  NEEDS_REVISION
+  REJECTED
+}
+
+enum CompetitionAssessmentStatus {
+  DRAFT
+  SUBMITTED
+}
+
+model CompetitionPeriod {
+  id                String                   @id @default(uuid()) @db.Uuid
+  name              String                   @db.VarChar(255)
+  year              Int
+  registrationStart DateTime                 @map("registration_start") @db.Date
+  registrationEnd   DateTime                 @map("registration_end") @db.Date
+  verificationStart DateTime                 @map("verification_start") @db.Date
+  verificationEnd   DateTime                 @map("verification_end") @db.Date
+  assessmentStart   DateTime                 @map("assessment_start") @db.Date
+  assessmentEnd     DateTime                 @map("assessment_end") @db.Date
+  announcementDate  DateTime                 @map("announcement_date") @db.Date
+  status            CompetitionPeriodStatus  @default(DRAFT)
+  isActive          Boolean                  @default(false) @map("is_active")
+  isPublished       Boolean                  @default(false) @map("is_published")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  participants      CompetitionParticipant[]
+  indicators        CompetitionIndicator[]
+  results           CompetitionResult[]
+
+  @@index([year])
+  @@index([isActive])
+  @@map("competition_periods")
+}
+
+model CompetitionParticipant {
+  id               String                       @id @default(uuid()) @db.Uuid
+  periodId         String                       @map("period_id") @db.Uuid
+  innovationId     String                       @map("innovation_id") @db.Uuid
+  institutionId    String                       @map("institution_id") @db.Uuid
+  createdById      String                       @map("created_by") @db.Uuid
+  status           CompetitionParticipantStatus @default(DRAFT)
+  finalScore       Decimal?                     @map("final_score") @db.Decimal(6, 2)
+  submittedAt      DateTime?                    @map("submitted_at") @db.Timestamptz(3)
+  createdAt        DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  period           CompetitionPeriod            @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  innovation       Innovation                   @relation(fields: [innovationId], references: [id], onDelete: Restrict)
+  institution      Institution                  @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  createdBy        User                         @relation("ParticipantCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  documents        CompetitionDocument[]
+  verifications    CompetitionVerification[]
+  judgeAssignments CompetitionJudgeAssignment[]
+  assessments      CompetitionAssessment[]
+  result           CompetitionResult?
+  activityLogs     CompetitionActivityLog[]
+
+  @@unique([periodId, innovationId])
+  @@index([institutionId])
+  @@index([status])
+  @@map("competition_participants")
+}
+
+model CompetitionDocument {
+  id            String                    @id @default(uuid()) @db.Uuid
+  participantId String                    @map("participant_id") @db.Uuid
+  name          String                    @db.VarChar(255)
+  type          String                    @db.VarChar(100)
+  documentDate  DateTime?                 @map("document_date") @db.Date
+  description   String?                   @db.Text
+  fileUrl       String                    @map("file_url") @db.Text
+  status        CompetitionDocumentStatus @default(UNVERIFIED)
+  createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  participant   CompetitionParticipant    @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([participantId])
+  @@map("competition_documents")
+}
+
+model CompetitionVerification {
+  id            String                       @id @default(uuid()) @db.Uuid
+  participantId String                       @map("participant_id") @db.Uuid
+  verifierId    String                       @map("verifier_id") @db.Uuid
+  checklist     Json
+  notes         String?                      @db.Text
+  decision      CompetitionParticipantStatus
+  createdAt     DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  participant   CompetitionParticipant       @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  verifier      User                         @relation(fields: [verifierId], references: [id], onDelete: Restrict)
+
+  @@index([participantId])
+  @@map("competition_verifications")
+}
+
+model CompetitionIndicator {
+  id          String                       @id @default(uuid()) @db.Uuid
+  periodId    String                       @map("period_id") @db.Uuid
+  name        String                       @db.VarChar(255)
+  description String?                      @db.Text
+  weight      Decimal                      @db.Decimal(5, 2)
+  minScore    Int                          @default(0) @map("min_score")
+  maxScore    Int                          @default(100) @map("max_score")
+  position    Int                          @default(0)
+  isActive    Boolean                      @default(true) @map("is_active")
+  period      CompetitionPeriod            @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  scores      CompetitionAssessmentScore[]
+
+  @@index([periodId, isActive])
+  @@map("competition_indicators")
+}
+
+model CompetitionJudgeAssignment {
+  id            String                 @id @default(uuid()) @db.Uuid
+  participantId String                 @map("participant_id") @db.Uuid
+  judgeId       String                 @map("judge_id") @db.Uuid
+  assignedById  String                 @map("assigned_by") @db.Uuid
+  createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  participant   CompetitionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  judge         User                   @relation("AssignedJudge", fields: [judgeId], references: [id], onDelete: Restrict)
+  assignedBy    User                   @relation("AssignmentCreatedBy", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@unique([participantId, judgeId])
+  @@map("competition_judge_assignments")
+}
+
+model CompetitionAssessment {
+  id            String                       @id @default(uuid()) @db.Uuid
+  participantId String                       @map("participant_id") @db.Uuid
+  judgeId       String                       @map("judge_id") @db.Uuid
+  status        CompetitionAssessmentStatus  @default(DRAFT)
+  totalScore    Decimal                      @default(0) @map("total_score") @db.Decimal(6, 2)
+  submittedAt   DateTime?                    @map("submitted_at") @db.Timestamptz(3)
+  createdAt     DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  participant   CompetitionParticipant       @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  judge         User                         @relation(fields: [judgeId], references: [id], onDelete: Restrict)
+  scores        CompetitionAssessmentScore[]
+
+  @@unique([participantId, judgeId])
+  @@map("competition_assessments")
+}
+
+model CompetitionAssessmentScore {
+  id            String                @id @default(uuid()) @db.Uuid
+  assessmentId  String                @map("assessment_id") @db.Uuid
+  indicatorId   String                @map("indicator_id") @db.Uuid
+  score         Decimal               @db.Decimal(6, 2)
+  weightedScore Decimal               @map("weighted_score") @db.Decimal(6, 2)
+  notes         String?               @db.Text
+  assessment    CompetitionAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  indicator     CompetitionIndicator  @relation(fields: [indicatorId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, indicatorId])
+  @@map("competition_assessment_scores")
+}
+
+model CompetitionResult {
+  id            String                 @id @default(uuid()) @db.Uuid
+  periodId      String                 @map("period_id") @db.Uuid
+  participantId String                 @unique @map("participant_id") @db.Uuid
+  rank          Int
+  awardCategory String                 @map("award_category") @db.VarChar(100)
+  finalScore    Decimal                @map("final_score") @db.Decimal(6, 2)
+  finalizedAt   DateTime               @default(now()) @map("finalized_at") @db.Timestamptz(3)
+  finalizedById String                 @map("finalized_by") @db.Uuid
+  period        CompetitionPeriod      @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  participant   CompetitionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  finalizedBy   User                   @relation(fields: [finalizedById], references: [id], onDelete: Restrict)
+
+  @@unique([periodId, rank])
+  @@map("competition_results")
+}
+
+model CompetitionActivityLog {
+  id            String                 @id @default(uuid()) @db.Uuid
+  participantId String                 @map("participant_id") @db.Uuid
+  userId        String                 @map("user_id") @db.Uuid
+  activity      String                 @db.VarChar(255)
+  description   String?                @db.Text
+  createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  participant   CompetitionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([participantId, createdAt])
+  @@map("competition_activity_logs")
 }

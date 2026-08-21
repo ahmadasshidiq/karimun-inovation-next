@@ -22,7 +22,7 @@ async function main() {
   const email =
     process.env["SEED_SUPER_ADMIN_EMAIL"] ?? "superadmin@karimunkab.go.id";
   const plainPassword =
-    process.env["SEED_SUPER_ADMIN_PASSWORD"] ?? "Admin11234";
+    process.env["SEED_SUPER_ADMIN_PASSWORD"] ?? "Admin1234";
   const salt = randomBytes(32).toString("hex");
   const password = hashPassword(plainPassword, salt);
 
