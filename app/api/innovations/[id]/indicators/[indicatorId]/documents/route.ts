@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
-import { ensureMinioBucket, minio, minioBucket, minioPublicUrl } from "@/lib/minio";
+import { ensureMinioBucket, getMinioClient, minioBucket, minioPublicUrl } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -42,6 +42,7 @@ export async function POST(
 
   try {
     await ensureMinioBucket();
+    const minio = getMinioClient();
     await minio.putObject(
       minioBucket,
       objectName,

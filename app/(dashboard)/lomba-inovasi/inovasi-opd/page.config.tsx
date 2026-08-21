@@ -10,6 +10,7 @@ export type InnovationStage = "Inisiatif" | "Uji Coba" | "Penerapan";
 
 export type OpdInnovationDto = {
   id: string;
+  innovationId: string;
   number: number;
   organization: string;
   innovationName: string;
@@ -64,17 +65,18 @@ type ToolbarProps = {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
   onAdd: () => void;
+  canAdd: boolean;
 };
 
-export const headerToolbar = ({ searchTerm, setSearchTerm, onAdd }: ToolbarProps) => (
+export const headerToolbar = ({ searchTerm, setSearchTerm, onAdd, canAdd }: ToolbarProps) => (
   <div className="flex flex-wrap items-center justify-end gap-3">
     <label className="relative block w-full sm:w-60">
       <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
-      <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="CARI..." className="h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-[11px] outline-none focus:border-[#124579]" />
+      <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="CARI..." className="h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-[11px] text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#124579]" />
     </label>
-    <Button onClick={onAdd} className="h-9 gap-2 rounded-md bg-[#124579] px-4 text-[11px] font-bold uppercase text-white hover:bg-[#0d365f]">
+    {canAdd ? <Button onClick={onAdd} className="h-9 gap-2 rounded-md bg-[#124579] px-4 text-[11px] font-bold uppercase text-white hover:bg-[#0d365f]">
       <Plus className="size-4" /> Tambah Inovasi
-    </Button>
+    </Button> : null}
   </div>
 );
 
@@ -83,17 +85,20 @@ type ActionProps = {
   onView: (id: string) => void;
   onEdit: (id: string) => void;
   onIndicators: (id: string) => void;
+  onDocuments: (id: string) => void;
+  onVerification: (id: string) => void;
+  onHistory: (id: string) => void;
   onDelete: (id: string) => void;
 };
 
-export const renderActions = ({ row, onView, onEdit, onIndicators, onDelete }: ActionProps) => (
+export const renderActions = ({ row, onView, onEdit, onIndicators, onDocuments, onVerification, onHistory, onDelete }: ActionProps) => (
   <div className="flex justify-end gap-2 text-slate-400">
     <button onClick={() => onView(row.id)} title="Detail" aria-label="Detail"><Eye className="size-4" /></button>
     <button onClick={() => onEdit(row.id)} title="Edit" aria-label="Edit"><SquarePen className="size-4" /></button>
-    <button onClick={() => onView(row.id)} title="Dokumen" aria-label="Dokumen"><FileText className="size-4" /></button>
-    <button onClick={() => onView(row.id)} title="Verifikasi" aria-label="Verifikasi"><ClipboardCheck className="size-4" /></button>
+    <button onClick={() => onDocuments(row.id)} title="Dokumen" aria-label="Dokumen"><FileText className="size-4" /></button>
+    <button onClick={() => onVerification(row.id)} title="Verifikasi" aria-label="Verifikasi"><ClipboardCheck className="size-4" /></button>
     <button onClick={() => onIndicators(row.id)} title="Penilaian" aria-label="Penilaian"><Star className="size-4" /></button>
-    <button onClick={() => onView(row.id)} title="Riwayat" aria-label="Riwayat"><History className="size-4" /></button>
+    <button onClick={() => onHistory(row.id)} title="Riwayat" aria-label="Riwayat"><History className="size-4" /></button>
     {row.status === "DRAFT" ? <button onClick={() => onDelete(row.id)} title="Hapus draft" className="text-red-400" aria-label="Hapus draft">×</button> : null}
   </div>
 );

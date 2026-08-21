@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { canAccessCompetition } from "@/lib/competition-permission";
 
 export async function GET() {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!canAccessCompetition(user, "register"))
+    return NextResponse.json({ message: "Anda tidak memiliki akses untuk mendaftarkan inovasi." }, { status: 403 });
   const period = await prisma.competitionPeriod.findFirst({ where: { isActive: true } });
   const registered = period ? await prisma.competitionParticipant.findMany({ where: { periodId: period.id }, select: { innovationId: true } }) : [];
   const data = await prisma.innovation.findMany({
@@ -13,4 +16,3 @@ export async function GET() {
   });
   return NextResponse.json({ data: data.map((item) => ({ id: item.id, name: item.name, stage: item.implementationPeriod ? "Penerapan" : item.trialPeriod ? "Uji Coba" : "Inisiatif", governmentAffair: item.governmentAffairs || "-", implementationDate: item.implementationPeriod?.toISOString().slice(0, 10) || "-", status: item.status })) });
 }
-

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { canAccessCompetition } from "@/lib/competition-permission";
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!canAccessCompetition(user, "assess"))
+    return NextResponse.json({ message: "Anda tidak memiliki akses penilaian." }, { status: 403 });
   const { id } = await context.params;
   const participant = await prisma.competitionParticipant.findUnique({ where: { id }, include: { innovation: true, institution: true, period: { include: { indicators: { where: { isActive: true }, orderBy: { position: "asc" } } } } } });
   if (!participant) return NextResponse.json({ message: "Peserta tidak ditemukan." }, { status: 404 });
@@ -15,6 +18,8 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!canAccessCompetition(user, "assess"))
+    return NextResponse.json({ message: "Anda tidak memiliki akses penilaian." }, { status: 403 });
   const { id } = await context.params;
   const assignment = await prisma.competitionJudgeAssignment.findUnique({ where: { participantId_judgeId: { participantId: id, judgeId: user.id } } });
   if (!assignment) return NextResponse.json({ message: "Anda belum ditugaskan sebagai juri untuk inovasi ini." }, { status: 403 });

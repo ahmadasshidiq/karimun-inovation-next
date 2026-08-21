@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download } from "lucide-react";
 
-import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
+import { AppPageHeader, AppSidebarLayout, useSessionUser } from "@/components/app-sidebar";
 import DynamicPage from "@/components/dynamic-page";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -14,6 +14,7 @@ import { columnFormats, headerToolbar, ITEMS_PER_PAGE, renderActions, type OpdIn
 
 export default function OpdInnovationPage() {
   const router = useRouter();
+  const { user } = useSessionUser();
   const [data, setData] = useState<OpdInnovationDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,7 +70,8 @@ export default function OpdInnovationPage() {
     URL.revokeObjectURL(link.href);
   };
 
-  const toolbar = headerToolbar({ searchTerm, setSearchTerm: (value) => { setSearchTerm(value); setCurrentPage(1); }, onAdd: () => setShowAdd(true) });
+  const canRegister = user?.role === "Super Admin" || user?.role === "Admin OPD";
+  const toolbar = headerToolbar({ searchTerm, setSearchTerm: (value) => { setSearchTerm(value); setCurrentPage(1); }, onAdd: () => setShowAdd(true), canAdd: canRegister });
   const stages = [["all", "Semua"], ["DRAFT", "Draft"], ["WAITING_VERIFICATION", "Menunggu Verifikasi"], ["NEEDS_REVISION", "Perlu Perbaikan"], ["VERIFIED", "Lolos Verifikasi"], ["UNDER_ASSESSMENT", "Sedang Dinilai"], ["ASSESSED", "Selesai Dinilai"]];
   const statCards = [["Total Inovasi Terdaftar", summary.total], ["Menunggu Verifikasi", summary.waiting], ["Perlu Perbaikan", summary.revision], ["Lolos Verifikasi", summary.verified], ["Sedang Dinilai", summary.assessing], ["Selesai Dinilai", summary.assessed]];
 
@@ -79,7 +81,7 @@ export default function OpdInnovationPage() {
         <div className="mx-auto w-full max-w-[1600px]">
           <AppPageHeader title="Lomba Inovasi Pemerintah Daerah" description="Dashboard / Lomba Inovasi Perangkat Daerah / Inovasi OPD" />
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-lg font-extrabold text-[#124579]">{period?.name || "Lomba Inovasi OPD Kabupaten Karimun"}</h2><span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700">{period?.status === "REGISTRATION" ? "Sedang Berlangsung" : period?.status || "Belum Ada Periode Aktif"}</span></div><Button onClick={() => setShowAdd(true)} className="bg-[#124579] text-white">+ Tambah Inovasi Lomba</Button></div>
+            <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-lg font-extrabold text-[#124579]">{period?.name || "Lomba Inovasi OPD Kabupaten Karimun"}</h2><span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700">{period?.status === "REGISTRATION" ? "Sedang Berlangsung" : period?.status || "Belum Ada Periode Aktif"}</span></div>{canRegister ? <Button onClick={() => setShowAdd(true)} className="bg-[#124579] text-white">+ Tambah Inovasi Lomba</Button> : null}</div>
             {period ? <div className="mt-5 grid gap-3 text-xs text-slate-600 sm:grid-cols-3"><p><b>Periode Pendaftaran</b><br />{new Date(period.registrationStart).toLocaleDateString("id-ID")} – {new Date(period.registrationEnd).toLocaleDateString("id-ID")}</p><p><b>Periode Penilaian</b><br />{new Date(period.assessmentStart).toLocaleDateString("id-ID")} – {new Date(period.assessmentEnd).toLocaleDateString("id-ID")}</p><p><b>Pengumuman</b><br />{new Date(period.announcementDate).toLocaleDateString("id-ID")}</p></div> : null}
           </section>
           <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">{statCards.map(([label, value]) => <article key={String(label)} className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm"><p className="text-[11px] font-semibold text-slate-500">{label}</p><p className="mt-2 text-2xl font-extrabold text-[#124579]">{value}</p></article>)}</section>
@@ -87,7 +89,7 @@ export default function OpdInnovationPage() {
           <nav className="mt-4 flex flex-wrap gap-1">{stages.map(([value, label]) => <button key={value} onClick={() => { setStatus(value); setCurrentPage(1); }} className={`rounded-lg px-4 py-2 text-[10px] font-bold uppercase ${status === value ? "bg-white text-[#315bea] shadow-sm" : "text-slate-400"}`}>{label}</button>)}</nav>
           <div className="mt-3 flex flex-wrap gap-3 rounded-xl bg-white p-3"><select value={stage} onChange={(event) => setStage(event.target.value)} className="h-9 rounded-md border border-slate-200 px-3 text-xs"><option value="all">Semua Tahapan</option><option>Inisiatif</option><option>Uji Coba</option><option>Penerapan</option></select><select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 rounded-md border border-slate-200 px-3 text-xs"><option value="all">Semua Status</option><option value="DRAFT">Draft</option><option value="WAITING_VERIFICATION">Menunggu Verifikasi</option><option value="NEEDS_REVISION">Perlu Perbaikan</option><option value="VERIFIED">Lolos Verifikasi</option><option value="UNDER_ASSESSMENT">Sedang Dinilai</option><option value="ASSESSED">Selesai Dinilai</option></select><button onClick={() => { setStage("all"); setStatus("all"); setSearchTerm(""); }} className="text-xs font-bold text-blue-600">Reset Filter</button></div>
           <div className="mt-4 [&>div]:!bg-white [&>div]:!p-4 [&_th]:!text-[11px] [&_th]:!font-bold [&_th]:!text-[#124579] [&_td]:!text-[11px] [&_td]:!text-slate-600">
-            <DynamicPage className="border! border-slate-100! shadow-md!" toolbar={toolbar} columns={columnFormats} items={visibleData} total={filteredData.length} currentPage={currentPage} totalPages={totalPages} loading={loading} onPageChange={setCurrentPage} getRowId={(row) => row.id} renderActions={(row) => renderActions({ row, onView: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}`), onEdit: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}?mode=edit`), onIndicators: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}/penilaian`), onDelete: deleteInnovation })} />
+            <DynamicPage className="border! border-slate-100! shadow-md!" toolbar={toolbar} columns={columnFormats} items={visibleData} total={filteredData.length} currentPage={currentPage} totalPages={totalPages} loading={loading} onPageChange={setCurrentPage} getRowId={(row) => row.id} renderActions={(row) => renderActions({ row, onView: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}`), onEdit: () => router.push(`/innovations/${row.innovationId}?mode=edit`), onDocuments: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}?tab=dokumen`), onVerification: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}?tab=verifikasi`), onIndicators: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}/penilaian`), onHistory: (id) => router.push(`/lomba-inovasi/inovasi-opd/${id}?tab=riwayat`), onDelete: deleteInnovation })} />
           </div>
           <InformationPanel />
           <AddParticipantModal open={showAdd} onOpenChange={setShowAdd} onSuccess={fetchData} />

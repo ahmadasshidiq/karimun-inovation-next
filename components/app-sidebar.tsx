@@ -238,8 +238,8 @@ export function AppPageHeader({
               {initials}
             </span>
             <span className="hidden sm:block">
-              <span className="block text-sm font-bold">{displayedName}</span>
-              <span className="block text-xs text-neutral-700">
+            <span className="block text-sm font-bold text-neutral-950">{displayedName}</span>
+            <span className="block text-xs text-neutral-700">
                 {displayedRole}
               </span>
             </span>

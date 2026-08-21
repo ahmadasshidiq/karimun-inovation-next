@@ -34,10 +34,10 @@ export default function LoginForm({
             className="mx-auto mb-7 h-auto w-[76px] sm:w-[92px] lg:w-[104px]"
           />
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.025em] text-black sm:text-[32px] lg:text-[32px]">
-            Selamat Datang Kembali
+            Lomba Inovasi OPD Kabupaten Karimun
           </h1>
           <p className="mt-2 text-[16px] leading-relaxed text-neutral-800 sm:text-[16px] lg:text-[16px]">
-            Kelola inovasi daerah secara mudah, aman, dan terintegrasi.
+            Masuk untuk mengelola proses lomba inovasi sesuai hak akses Anda.
           </p>
         </div>
 
@@ -99,6 +99,7 @@ export default function LoginForm({
             </div>
           </div>
 
+          <div className="flex items-center justify-between gap-3">
           <label className="flex w-fit cursor-pointer items-center gap-3 text-[14px] font-semibold text-neutral-900">
             <input
               type="checkbox"
@@ -108,6 +109,8 @@ export default function LoginForm({
             />
             Ingat Saya
           </label>
+          <a href="mailto:diskominfo@karimunkab.go.id?subject=Bantuan%20Password%20Lomba%20Inovasi%20OPD" className="text-[14px] font-semibold text-[#d98700] hover:underline">Lupa Password?</a>
+          </div>
 
           <button
             type="submit"

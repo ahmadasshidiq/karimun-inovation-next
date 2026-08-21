@@ -5,6 +5,9 @@ import { getAuthenticatedUser } from "@/lib/auth-user";
 import { MASTER_PERMISSIONS } from "@/lib/master-permission";
 import { prisma } from "@/lib/prisma";
 
+const isSuperAdmin = (user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
+  user?.role.name === "Super Admin";
+
 const normalizePermissions = (value: unknown) => {
   if (!Array.isArray(value)) return [];
   return MASTER_PERMISSIONS.flatMap((master) => {
@@ -24,7 +27,7 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  if (!isSuperAdmin(await getAuthenticatedUser()))
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
   const { id } = await context.params;
   const role = await prisma.role.findUnique({ where: { id } });
@@ -37,7 +40,7 @@ export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  if (!isSuperAdmin(await getAuthenticatedUser()))
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
   const { id } = await context.params;
   const payload = (await request.json()) as { name?: string; permission?: unknown };
@@ -69,7 +72,7 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  if (!isSuperAdmin(await getAuthenticatedUser()))
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
   const { id } = await context.params;
   const role = await prisma.role.findUnique({ where: { id } });

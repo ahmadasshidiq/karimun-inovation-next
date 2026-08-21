@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
-import { minio, minioBucket } from "@/lib/minio";
+import { getMinioClient, minioBucket } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
 
 const findDocument = (
@@ -29,6 +29,7 @@ export async function GET(
     return NextResponse.json({ message: "Dokumen tidak ditemukan." }, { status: 404 });
 
   try {
+    const minio = getMinioClient();
     const url = await minio.presignedGetObject(
       minioBucket,
       document.objectName,
@@ -55,6 +56,7 @@ export async function DELETE(
     return NextResponse.json({ message: "Dokumen tidak ditemukan." }, { status: 404 });
 
   try {
+    const minio = getMinioClient();
     await minio.removeObject(minioBucket, document.objectName);
     await prisma.innovationIndicatorDocument.delete({ where: { id: document.id } });
     return NextResponse.json({ message: "Dokumen berhasil dihapus." });

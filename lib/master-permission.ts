@@ -54,7 +54,22 @@ export const MASTER_PERMISSIONS: MasterPermission[] = [
   },
   {
     model: "innovation-competitions",
-    actions: ["get-all", "get-by-id", "create", "update", "delete"],
+    actions: [
+      "get-all",
+      "get-by-id",
+      "register",
+      "update",
+      "delete",
+      "submit",
+      "verify",
+      "manage-period",
+      "manage-indicators",
+      "manage-juries",
+      "assess",
+      "view-results",
+      "finalize",
+      "export",
+    ],
   },
   {
     model: "training-reports",

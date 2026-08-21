@@ -4,6 +4,9 @@ import { getAuthenticatedUser } from "@/lib/auth-user";
 import { MASTER_PERMISSIONS } from "@/lib/master-permission";
 import { prisma } from "@/lib/prisma";
 
+const isSuperAdmin = (user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
+  user?.role.name === "Super Admin";
+
 const normalizePermissions = (value: unknown) => {
   if (!Array.isArray(value)) return [];
   return MASTER_PERMISSIONS.map((master) => {
@@ -25,7 +28,7 @@ const normalizePermissions = (value: unknown) => {
 };
 
 export async function GET(request: NextRequest) {
-  if (!(await getAuthenticatedUser()))
+  if (!isSuperAdmin(await getAuthenticatedUser()))
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const page = Math.max(1, Number(request.nextUrl.searchParams.get("page")) || 1);
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await getAuthenticatedUser()))
+  if (!isSuperAdmin(await getAuthenticatedUser()))
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const payload = (await request.json()) as { name?: string; permission?: unknown };
