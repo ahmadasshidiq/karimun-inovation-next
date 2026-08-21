@@ -1,8 +1,44 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
+
+.innovation-map-marker {
+  position: relative;
+  background: transparent;
+  border: 0;
+}
+
+.innovation-map-marker__dot,
+.innovation-map-marker__pulse {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+}
+
+.innovation-map-marker__dot {
+  width: 14px;
+  height: 14px;
+  border: 3px solid white;
+  background: #2563eb;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 35%);
+}
+
+.innovation-map-marker__pulse {
+  width: 28px;
+  height: 28px;
+  background: rgb(37 99 235 / 28%);
+}
+
+.leaflet-tooltip {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgb(15 23 42 / 18%);
+  padding: 8px 10px;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -127,4 +163,9 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Leaflet uses high z-index values for its panes. Keep them local to the map. */
+.leaflet-container {
+  z-index: 0;
 }

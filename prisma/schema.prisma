@@ -95,31 +95,33 @@ model Nomenclature {
 }
 
 model Innovation {
-  id                      String                   @id @default(uuid()) @db.Uuid
-  name                    String                   @db.VarChar(255)
-  latitude                Decimal?                 @db.Decimal(10, 8)
-  longitude               Decimal?                 @db.Decimal(11, 8)
-  status                  Status                   @default(ACTIVE)
-  initiatorType           String?                  @map("initiator_type") @db.VarChar(100)
-  initiatorName           String?                  @map("initiator_name") @db.VarChar(255)
-  type                    String?                  @db.VarChar(100)
-  classification          String?                  @db.VarChar(100)
-  innovationForm          String?                  @map("innovation_form") @db.VarChar(100)
-  thematic                String?                  @map("thematic") @db.VarChar(255)
-  pkpnCluster             String?                  @map("pkpn_cluster") @db.VarChar(255)
-  pkpnSubCluster          String?                  @map("pkpn_sub_cluster") @db.VarChar(255)
-  governmentAffairs       String?                  @map("government_affairs") @db.VarChar(255)
-  trialPeriod             DateTime?                @map("trial_period") @db.Date
-  implementationPeriod    DateTime?                @map("implementation_period") @db.Date
-  isDevelopment           Boolean                  @default(false) @map("is_development")
-  description             String?                  @db.Text
-  purpose                 String?                  @db.Text
-  files                   Json                     @default("[]")
-  createdById             String                   @map("created_by") @db.Uuid
-  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt               DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt               DateTime?                @map("deleted_at") @db.Timestamptz(3)
-  createdBy               User                     @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id                      String                          @id @default(uuid()) @db.Uuid
+  name                    String                          @db.VarChar(255)
+  latitude                Decimal?                        @db.Decimal(10, 8)
+  longitude               Decimal?                        @db.Decimal(11, 8)
+  status                  Status                          @default(ACTIVE)
+  initiatorType           String?                         @map("initiator_type") @db.VarChar(100)
+  initiatorName           String?                         @map("initiator_name") @db.VarChar(255)
+  stage                   String?                         @map("stage") @db.VarChar(255)
+  type                    String?                         @db.VarChar(100)
+  classification          String?                         @db.VarChar(100)
+  innovationForm          String?                         @map("innovation_form") @db.VarChar(100)
+  thematic                String?                         @map("thematic") @db.VarChar(255)
+  pkpnCluster             String?                         @map("pkpn_cluster") @db.VarChar(255)
+  pkpnSubCluster          String?                         @map("pkpn_sub_cluster") @db.VarChar(255)
+  governmentAffairs       String?                         @map("government_affairs") @db.VarChar(255)
+  trialPeriod             DateTime?                       @map("trial_period") @db.Date
+  implementationPeriod    DateTime?                       @map("implementation_period") @db.Date
+  isDevelopment           Boolean                         @default(false) @map("is_development")
+  description             String?                         @db.Text
+  purpose                 String?                         @db.Text
+  files                   Json                            @default("[]")
+  createdById             String                          @map("created_by") @db.Uuid
+  createdAt               DateTime                        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime                        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt               DateTime?                       @map("deleted_at") @db.Timestamptz(3)
+  createdBy               User                            @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  indicatorAssessments    InnovationIndicatorAssessment[]
   competitionParticipants CompetitionParticipant[]
 
   @@index([createdById])
@@ -339,4 +341,64 @@ model CompetitionActivityLog {
 
   @@index([participantId, createdAt])
   @@map("competition_activity_logs")
+}
+
+model InnovationIndicatorAssessment {
+  id           String                        @id @default(uuid()) @db.Uuid
+  innovationId String                        @map("innovation_id") @db.Uuid
+  indicatorId  Int                           @map("indicator_id")
+  parameter    String                        @db.Text
+  score        Decimal                       @db.Decimal(8, 2)
+  createdAt    DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  innovation   Innovation                    @relation(fields: [innovationId], references: [id], onDelete: Cascade)
+  documents    InnovationIndicatorDocument[]
+
+  @@unique([innovationId, indicatorId])
+  @@index([innovationId])
+  @@map("innovation_indicator_assessments")
+}
+
+model InnovationIndicatorDocument {
+  id             String                        @id @default(uuid()) @db.Uuid
+  assessmentId   String                        @map("assessment_id") @db.Uuid
+  documentNumber String?                       @map("document_number") @db.VarChar(255)
+  documentDate   DateTime?                     @map("document_date") @db.Date
+  documentTitle  String                        @map("document_title") @db.VarChar(255)
+  originalName   String                        @map("original_name") @db.VarChar(255)
+  objectName     String                        @map("object_name") @db.Text
+  url            String                        @db.Text
+  mimeType       String                        @map("mime_type") @db.VarChar(100)
+  size           Int
+  createdAt      DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  assessment     InnovationIndicatorAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("innovation_indicator_documents")
+}
+
+model Announcement {
+  id               String    @id @default(uuid()) @db.Uuid
+  title            String    @db.VarChar(255)
+  content          String    @default("") @db.Text
+  announcementDate DateTime  @map("announcement_date") @db.Date
+  status           Status    @default(ACTIVE)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  @@index([status])
+  @@index([announcementDate])
+  @@index([deletedAt])
+  @@map("announcements")
+}
+
+model DashboardConfiguration {
+  id              String   @id @default(uuid()) @db.Uuid
+  countdownTarget DateTime @map("countdown_target") @db.Timestamptz(3)
+  countdownActive Boolean  @default(true) @map("countdown_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("dashboard_configurations")
 }

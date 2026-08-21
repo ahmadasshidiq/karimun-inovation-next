@@ -1,0 +1,26 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
+import DynamicPage from "@/components/dynamic-page";
+import { toast } from "@/components/ui/toast";
+import { parseApiResponse } from "@/lib/helper/response-api";
+
+import FormData from "./components/form-data";
+import { columnFormats, filterPanel, headerToolbar, ITEMS_PER_PAGE, renderActions, type AnnouncementDto, type AnnouncementFormValues, type AnnouncementListResponse } from "./page.config";
+
+export default function AnnouncementsPage() {
+  const [data, setData] = useState<AnnouncementDto[]>([]), [searchTerm, setSearchTerm] = useState(""), [debouncedSearch, setDebouncedSearch] = useState(""), [status, setStatus] = useState("all");
+  const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [currentPage, setCurrentPage] = useState(1), [total, setTotal] = useState(0);
+  const [showFilter, setShowFilter] = useState(true), [showModal, setShowModal] = useState(false), [detailItem, setDetailItem] = useState<AnnouncementDto>(), [deleteId, setDeleteId] = useState<string | null>(null);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)), [total]);
+  const fetchData = useCallback(async () => { try { setLoading(true); const params = new URLSearchParams({ page: String(currentPage), limit: String(ITEMS_PER_PAGE) }); if (debouncedSearch) params.set("search", debouncedSearch); if (status !== "all") params.set("status", status); const response = await fetch(`/api/announcements?${params}`, { cache: "no-store" }); const payload = await parseApiResponse<AnnouncementListResponse>(response, "Gagal mengambil pengumuman"); setData((payload.data || []).map((item, index) => ({ ...item, number: (currentPage - 1) * ITEMS_PER_PAGE + index + 1 }))); setTotal(payload.total || 0); } catch (error) { toast.add({ type: "error", title: error instanceof Error ? error.message : "Gagal mengambil pengumuman" }); } finally { setLoading(false); } }, [currentPage, debouncedSearch, status]);
+  useEffect(() => { const timeout = window.setTimeout(() => { setDebouncedSearch(searchTerm.trim()); setCurrentPage(1); }, 500); return () => window.clearTimeout(timeout); }, [searchTerm]);
+  useEffect(() => { const timeout = window.setTimeout(() => { void fetchData(); }, 0); return () => window.clearTimeout(timeout); }, [fetchData]);
+  const save = useCallback(async (values: AnnouncementFormValues) => { try { setSaving(true); const response = await fetch(detailItem ? `/api/announcements/${detailItem.id}` : "/api/announcements", { method: detailItem ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) }); await parseApiResponse(response, "Gagal menyimpan pengumuman"); toast.add({ type: "success", title: "Pengumuman berhasil disimpan" }); setShowModal(false); setDetailItem(undefined); await fetchData(); } catch (error) { toast.add({ type: "error", title: error instanceof Error ? error.message : "Gagal menyimpan pengumuman" }); } finally { setSaving(false); } }, [detailItem, fetchData]);
+  const remove = useCallback(async (id: string) => { try { await parseApiResponse(await fetch(`/api/announcements/${id}`, { method: "DELETE" }), "Gagal menghapus pengumuman"); toast.add({ type: "success", title: "Pengumuman berhasil dihapus" }); setDeleteId(null); await fetchData(); } catch (error) { toast.add({ type: "error", title: error instanceof Error ? error.message : "Gagal menghapus pengumuman" }); } }, [fetchData]);
+  const toolbar = useMemo(() => headerToolbar({ onAdd: () => { setDetailItem(undefined); setShowModal(true); }, setShowFilter, activeFilterCount: (searchTerm.trim() ? 1 : 0) + (status !== "all" ? 1 : 0) }), [searchTerm, status]);
+  const filters = useMemo(() => showFilter ? filterPanel({ searchTerm, setSearchTerm, status, setStatus, clearFilters: () => { setSearchTerm(""); setStatus("all"); } }) : null, [searchTerm, showFilter, status]);
+  return <AppSidebarLayout><main className="min-h-screen bg-[#f7f8fc] px-4 py-5 text-slate-900 lg:px-8 lg:py-7"><div className="mx-auto max-w-[1600px]"><AppPageHeader title="Pengumuman" description="Kelola pengumuman yang ditampilkan pada dashboard."/><div className="mt-5 [&>div]:!bg-white [&>div]:!text-slate-700 [&_table]:!text-slate-700 [&_thead]:!border-slate-200 [&_tr]:!border-slate-200 [&_th]:!border-slate-100 [&_th]:!text-slate-700 [&_td]:!border-slate-200 [&_td]:!text-slate-700 [&_p]:!text-slate-600 [&_p_span]:!text-slate-900"><DynamicPage className="border! border-neutral-200! bg-white! text-slate-700! shadow-none! ring-0! backdrop-blur-none! dark:bg-white!" toolbar={toolbar} filterPanel={filters} columns={columnFormats} items={data} total={total} currentPage={currentPage} totalPages={totalPages} loading={loading} emptyMessage="Belum ada pengumuman." onPageChange={setCurrentPage} getRowId={(row) => row.id} renderActions={(row) => renderActions({ row, onEdit: (item) => { setDetailItem(item); setShowModal(true); }, onDelete: remove, deleteId, setDeleteId })}/></div></div></main>{showModal && <FormData key={detailItem?.id || "new"} open initialData={detailItem} saving={saving} onClose={() => setShowModal(false)} onSubmit={save}/>}</AppSidebarLayout>;
+}

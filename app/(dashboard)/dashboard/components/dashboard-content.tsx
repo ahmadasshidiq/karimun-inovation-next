@@ -1,6 +1,7 @@
 "use client";
 
-import Image from "next/image";
+import dynamic from "next/dynamic";
+import { memo, useState } from "react";
 import { Clock3, Mail, MapPinned, Megaphone, PieChart } from "lucide-react";
 import {
   PolarAngleAxis,
@@ -8,21 +9,51 @@ import {
   Radar,
   RadarChart,
   ResponsiveContainer,
+  Tooltip as RechartsTooltip,
 } from "recharts";
 
 import {
-  announcements,
-  assessmentData,
-  statistics,
+  getStatistics,
+  type AnnouncementItem,
+  type DashboardAssessmentItem,
   type CountdownValue,
+  type DashboardMapPoint,
+  type DashboardSummary,
 } from "../page.config";
 import { AppPageHeader, useSessionUser } from "@/components/app-sidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const InnovationMap = dynamic(() => import("./innovation-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex size-full items-center justify-center bg-slate-100 text-xs text-slate-500">
+      Memuat peta inovasi...
+    </div>
+  ),
+});
 
 type DashboardContentProps = {
   countdown: CountdownValue;
+  summary: DashboardSummary;
+  mapPoints: DashboardMapPoint[];
+  assessmentData: DashboardAssessmentItem[];
+  announcements: AnnouncementItem[];
+  countdownActive: boolean;
 };
 
-function CountdownBanner({ countdown }: { countdown: CountdownValue }) {
+function CountdownBanner({
+  countdown,
+  active,
+}: {
+  countdown: CountdownValue;
+  active: boolean;
+}) {
   const values = [
     { value: countdown.days, label: "Hari" },
     { value: countdown.hours, label: "Jam" },
@@ -44,8 +75,10 @@ function CountdownBanner({ countdown }: { countdown: CountdownValue }) {
             <h2 className="max-w-72 text-[13px] font-semibold leading-snug sm:text-base">
               Hitungan Mundur Pengisian Indeks Inovasi Daerah
               <div className="mx-2 inline-flex items-center gap-2 rounded-full border border-emerald-200/40 bg-emerald-400/20 px-2.5 py-1 text-[8px] font-semibold">
-                <span className="size-1.5 rounded-full bg-emerald-300" />
-                AKTIF
+                <span
+                  className={`size-1.5 rounded-full ${active ? "bg-emerald-300" : "bg-slate-300"}`}
+                />
+                {active ? "AKTIF" : "TIDAK AKTIF"}
               </div>
             </h2>
           </div>
@@ -75,7 +108,9 @@ function CountdownBanner({ countdown }: { countdown: CountdownValue }) {
   );
 }
 
-function StatisticsGrid() {
+function StatisticsGrid({ summary }: { summary: DashboardSummary }) {
+  const statistics = getStatistics(summary);
+
   return (
     <section className="grid grid-cols-2 gap-3 xl:grid-cols-3">
       {statistics.map((item) => {
@@ -99,31 +134,33 @@ function StatisticsGrid() {
   );
 }
 
-function MapPanel() {
+function MapPanel({ points }: { points: DashboardMapPoint[] }) {
   return (
     <section className="rounded-xl border border-neutral-200 bg-white p-3 sm:p-4">
       <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
         <MapPinned className="size-5" />
         Peta Inovasi
       </h2>
-      <div className="relative aspect-[4/3] min-h-52 overflow-hidden rounded-lg bg-slate-800 sm:aspect-[16/8] sm:min-h-64">
-        <Image
-          src="/images/dashboard-kepri-map.png"
-          alt="Peta satelit Kepulauan Riau"
-          fill
-          loading="eager"
-          sizes="(max-width: 1024px) 100vw, 60vw"
-          className="object-cover"
-        />
-        <div className="absolute bottom-3 left-3 rounded-md border border-cyan-300 bg-cyan-400/90 p-2 text-white">
-          <MapPinned className="size-4" />
-        </div>
+      <div className="relative isolate aspect-[4/3] min-h-52 overflow-hidden rounded-lg bg-slate-800 sm:aspect-[16/8] sm:min-h-64">
+        <InnovationMap points={points} />
+        {points.length === 0 && (
+          <div className="pointer-events-none absolute inset-x-4 bottom-4 z-[500] rounded-lg border border-white/30 bg-slate-950/75 px-3 py-2 text-center text-xs text-white backdrop-blur-sm">
+            Belum ada inovasi dengan koordinat yang valid.
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
-function AnnouncementPanel() {
+function AnnouncementPanel({
+  announcements,
+}: {
+  announcements: AnnouncementItem[];
+}) {
+  const [selectedAnnouncement, setSelectedAnnouncement] =
+    useState<AnnouncementItem | null>(null);
+
   return (
     <section className="min-h-[320px] rounded-xl border border-neutral-200 bg-white p-4 lg:min-h-0">
       <h2 className="mb-5 flex items-center gap-2 text-sm font-semibold">
@@ -132,27 +169,75 @@ function AnnouncementPanel() {
       </h2>
       <div className="space-y-3">
         {announcements.map((announcement) => (
-          <article
-            key={announcement.title}
-            className="flex items-center gap-3 rounded-md bg-neutral-100 px-3 py-2.5"
+          <button
+            type="button"
+            key={announcement.id}
+            onClick={() => setSelectedAnnouncement(announcement)}
+            className="flex w-full items-center gap-3 rounded-md bg-neutral-100 px-3 py-2.5 text-left transition-colors hover:bg-blue-50"
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-semibold">
                 {announcement.title}
               </p>
               <p className="mt-0.5 text-[10px] text-neutral-500">
-                {announcement.date}
+                {new Intl.DateTimeFormat("id-ID", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                }).format(
+                  new Date(`${announcement.announcementDate}T00:00:00`),
+                )}
               </p>
             </div>
             <Mail className="size-4 shrink-0 text-[#4f71ff]" />
-          </article>
+          </button>
         ))}
       </div>
+      {announcements.length === 0 && (
+        <p className="py-8 text-center text-xs text-slate-500">
+          Belum ada pengumuman aktif.
+        </p>
+      )}
+      <Dialog
+        open={Boolean(selectedAnnouncement)}
+        onOpenChange={(open) => !open && setSelectedAnnouncement(null)}
+      >
+        <DialogContent className="max-h-[88vh] overflow-hidden bg-white p-0 text-slate-900 sm:max-w-3xl">
+          <DialogHeader className="border-b border-slate-200 px-6 py-4">
+            <DialogTitle className="pr-8 text-lg font-bold">
+              {selectedAnnouncement?.title}
+            </DialogTitle>
+            <DialogDescription className="text-slate-500">
+              {selectedAnnouncement
+                ? new Intl.DateTimeFormat("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }).format(
+                    new Date(
+                      `${selectedAnnouncement.announcementDate}T00:00:00`,
+                    ),
+                  )
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div
+            className="max-h-[calc(88vh-100px)] overflow-y-auto px-6 pt-0 pb-5 text-sm leading-7 text-slate-700 [&>b:first-child]:mb-3 [&>b:first-child]:block [&>strong:first-child]:mb-3 [&>strong:first-child]:block [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:my-3 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-200 [&_blockquote]:pl-4 [&_div]:my-2 [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:mb-2 [&_h4]:mt-3 [&_h4]:font-semibold [&_img]:my-4 [&_img]:max-w-full [&_img]:rounded-xl [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_video]:my-4 [&_video]:max-h-[60vh] [&_video]:max-w-full [&_video]:rounded-xl"
+            dangerouslySetInnerHTML={{
+              __html: selectedAnnouncement?.content || "",
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
-function AssessmentPanel() {
+const AssessmentPanel = memo(function AssessmentPanel({
+  data,
+}: {
+  data: DashboardAssessmentItem[];
+}) {
   return (
     <section className="rounded-xl border border-neutral-200 bg-white p-4">
       <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
@@ -165,11 +250,28 @@ function AssessmentPanel() {
           height="100%"
           initialDimension={{ width: 320, height: 255 }}
         >
-          <RadarChart data={assessmentData} outerRadius="60%">
+          <RadarChart data={data} outerRadius="60%">
             <PolarGrid stroke="#d9e2ef" />
             <PolarAngleAxis
               dataKey="subject"
               tick={{ fill: "#65758b", fontSize: 8, fontWeight: 600 }}
+            />
+            <RechartsTooltip
+              cursor={false}
+              contentStyle={{
+                borderRadius: 10,
+                border: "1px solid #dbeafe",
+                boxShadow: "0 8px 24px rgba(15, 23, 42, 0.12)",
+                fontSize: 12,
+              }}
+              formatter={(_value, _name, item) => {
+                const payload = item.payload as DashboardAssessmentItem;
+                return [
+                  `${payload.score.toFixed(2)} / ${payload.maximumScore.toFixed(2)} (${payload.value.toFixed(1)}%)`,
+                  "Skor",
+                ];
+              }}
+              labelFormatter={(label) => String(label)}
             />
             <Radar
               dataKey="value"
@@ -177,15 +279,23 @@ function AssessmentPanel() {
               strokeWidth={4}
               fill="#4191ff"
               fillOpacity={0.28}
+              isAnimationActive={false}
             />
           </RadarChart>
         </ResponsiveContainer>
       </div>
     </section>
   );
-}
+});
 
-export default function DashboardContent({ countdown }: DashboardContentProps) {
+export default function DashboardContent({
+  countdown,
+  summary,
+  mapPoints,
+  assessmentData,
+  announcements,
+  countdownActive,
+}: DashboardContentProps) {
   const { user } = useSessionUser();
 
   return (
@@ -206,13 +316,15 @@ export default function DashboardContent({ countdown }: DashboardContentProps) {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2.6fr)_minmax(270px,1fr)]">
         <div className="space-y-4">
-          <CountdownBanner countdown={countdown} />
-          <StatisticsGrid />
-          <MapPanel />
+            {countdownActive ? (
+              <CountdownBanner countdown={countdown} active />
+            ) : null}
+          <StatisticsGrid summary={summary} />
+          <MapPanel points={mapPoints} />
         </div>
         <aside className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 lg:grid-rows-[1fr_auto]">
-          <AnnouncementPanel />
-          <AssessmentPanel />
+          <AnnouncementPanel announcements={announcements} />
+          <AssessmentPanel data={assessmentData} />
         </aside>
       </div>
     </div>

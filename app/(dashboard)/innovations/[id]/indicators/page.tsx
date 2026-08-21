@@ -1,15 +1,17 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { parseApiError } from "@/lib/helper/response-api";
 
 import IndicatorSummary from "./components/indicator-summary";
 import IndicatorTable from "./components/indicator-table";
-import { indicators } from "./page.config";
+import { indicators, type IndicatorDocument } from "./page.config";
 
 export default function InnovationIndicatorsPage({
   params,
@@ -17,11 +19,25 @@ export default function InnovationIndicatorsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const router = useRouter();
   const [name, setName] = useState("Inovasi");
   const [stage, setStage] = useState("Inisiatif");
   const [selections, setSelections] = useState<Record<number, string>>({});
-  const [files, setFiles] = useState<Record<number, File | undefined>>({});
+  const [documents, setDocuments] = useState<Record<number, IndicatorDocument[]>>({});
+
+  const fetchIndicators = useCallback(async () => {
+    const response = await fetch(`/api/innovations/${id}/indicators`);
+    if (!response.ok)
+      throw new Error(await parseApiError(response, "Gagal memuat indikator."));
+    const result = await response.json();
+    const nextSelections: Record<number, string> = {};
+    const nextDocuments: Record<number, IndicatorDocument[]> = {};
+    for (const assessment of result.data || []) {
+      nextSelections[assessment.indicatorId] = assessment.parameter;
+      nextDocuments[assessment.indicatorId] = assessment.documents || [];
+    }
+    setSelections(nextSelections);
+    setDocuments(nextDocuments);
+  }, [id]);
 
   useEffect(() => {
     void fetch(`/api/innovations/${id}`)
@@ -54,16 +70,86 @@ export default function InnovationIndicatorsPage({
       );
   }, [id]);
 
-  const onSelect = useCallback(
-    (indicatorId: number, value: string) =>
-      setSelections((current) => ({ ...current, [indicatorId]: value })),
-    [],
-  );
-  const onFile = useCallback(
-    (indicatorId: number, file?: File) =>
-      setFiles((current) => ({ ...current, [indicatorId]: file })),
-    [],
-  );
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void fetchIndicators().catch((error) =>
+        toast.add({
+          title: "Gagal memuat indikator",
+          description: error instanceof Error ? error.message : "Silakan coba kembali.",
+          type: "error",
+        }),
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [fetchIndicators]);
+
+  const onSelect = useCallback(async (indicatorId: number, value: string) => {
+    const indicator = indicators.find((item) => item.id === indicatorId);
+    setSelections((current) => ({ ...current, [indicatorId]: value }));
+    try {
+      const response = await fetch(`/api/innovations/${id}/indicators`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ indicatorId, parameter: value, score: indicator?.weight || 0 }),
+      });
+      if (!response.ok)
+        throw new Error(await parseApiError(response, "Gagal menyimpan parameter."));
+    } catch (error) {
+      await fetchIndicators();
+      toast.add({
+        title: "Gagal menyimpan parameter",
+        description: error instanceof Error ? error.message : "Silakan coba kembali.",
+        type: "error",
+      });
+    }
+  }, [fetchIndicators, id]);
+  const onDocument = useCallback(async (indicatorId: number, document: IndicatorDocument) => {
+    if (!document.file) return false;
+    try {
+      const formData = new FormData();
+      formData.set("documentNumber", document.documentNumber);
+      formData.set("documentDate", document.documentDate);
+      formData.set("documentTitle", document.documentTitle);
+      formData.set("file", document.file);
+      const response = await fetch(
+        `/api/innovations/${id}/indicators/${indicatorId}/documents`,
+        { method: "POST", body: formData },
+      );
+      if (!response.ok)
+        throw new Error(await parseApiError(response, "Gagal mengunggah dokumen."));
+      await fetchIndicators();
+      toast.add({ title: "Dokumen berhasil diunggah", type: "success" });
+      return true;
+    } catch (error) {
+      toast.add({
+        title: "Gagal mengunggah dokumen",
+        description: error instanceof Error ? error.message : "Silakan coba kembali.",
+        type: "error",
+      });
+      return false;
+    }
+  }, [fetchIndicators, id]);
+
+  const onDeleteDocument = useCallback(async (indicatorId: number, document: IndicatorDocument) => {
+    if (!document.id) return;
+    try {
+      const response = await fetch(
+        `/api/innovations/${id}/indicators/${indicatorId}/documents/${document.id}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok)
+        throw new Error(await parseApiError(response, "Gagal menghapus dokumen."));
+      await fetchIndicators();
+      toast.add({ title: "Dokumen berhasil dihapus", type: "success" });
+    } catch (error) {
+      toast.add({
+        title: "Gagal menghapus dokumen",
+        description: error instanceof Error ? error.message : "Silakan coba kembali.",
+        type: "error",
+      });
+    }
+  }, [fetchIndicators, id]);
   const completed = Object.keys(selections).length;
   const score = indicators.reduce(
     (total, indicator) =>
@@ -79,14 +165,20 @@ export default function InnovationIndicatorsPage({
             title={name}
             description={`Inovasi Perangkat Daerah > ${name}`}
           />
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-600">Tahapan</p>
-              <span className="mt-2 inline-flex min-w-32 justify-center rounded-full bg-emerald-200 px-4 py-1 text-xs font-medium text-emerald-700">
-                {stage}
-              </span>
+              <Button
+                nativeButton={false}
+                variant="outline"
+                className="h-10 w-fit border-blue-200 bg-white px-4 font-semibold text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                render={<Link href="/innovations" />}
+              >
+                <ArrowLeft />
+                Kembali
+              </Button>
             </div>
             <IndicatorSummary
+              stage={stage}
               score={score}
               completed={completed}
               total={indicators.length}
@@ -94,11 +186,13 @@ export default function InnovationIndicatorsPage({
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
             <IndicatorTable
+              innovationId={id}
               items={indicators}
               selections={selections}
-              files={files}
+              documents={documents}
               onSelect={onSelect}
-              onFile={onFile}
+              onDocument={onDocument}
+              onDeleteDocument={onDeleteDocument}
             />
           </div>
         </div>

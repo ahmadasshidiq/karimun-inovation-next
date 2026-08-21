@@ -189,19 +189,23 @@ function ToastIcon({ type }: { type: string | undefined }) {
 function ToastList() {
   const { toasts } = ToastPrimitive.useToastManager()
 
-  return toasts.map((toastItem) => (
+  return toasts.map((toastItem) => {
+    const hasDescription = Boolean(toastItem.description)
+
+    return (
     <Toast key={toastItem.id} toast={toastItem}>
-      <ToastContent>
+      <ToastContent className={hasDescription ? undefined : "items-center"}>
         <ToastIcon type={toastItem.type} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className={cn("flex min-w-0 flex-1 flex-col", hasDescription ? "gap-1" : "justify-center")}>
           <ToastTitle />
-          <ToastDescription />
+          {hasDescription && <ToastDescription />}
         </div>
         <ToastAction />
         <ToastClose />
       </ToastContent>
     </Toast>
-  ))
+    )
+  })
 }
 
 function Toaster({

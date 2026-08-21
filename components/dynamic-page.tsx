@@ -83,12 +83,7 @@ export default function DynamicPage<T extends object>({
       {toolbar ? <div className="mb-6">{toolbar}</div> : null}
       {filterPanel ? <div className="mb-6">{filterPanel}</div> : null}
 
-      <div
-        className={cn(
-          "min-w-0 transition-opacity duration-200",
-          loading && "opacity-60",
-        )}
-      >
+      <div className="min-w-0" aria-busy={loading}>
         <Table
           className={cn(
             "min-w-full text-slate-900 dark:text-slate-200",
@@ -159,7 +154,7 @@ export default function DynamicPage<T extends object>({
                   colSpan={columns.length + (hasActions ? 1 : 0)}
                   className="border-b border-slate-300 py-10 text-center !text-slate-500 dark:border-white/20 dark:!text-slate-400"
                 >
-                  {emptyMessage}
+                  {loading ? "Memuat data..." : emptyMessage}
                 </TableCell>
               </TableRow>
             )}

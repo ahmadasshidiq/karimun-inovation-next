@@ -68,6 +68,7 @@ export async function PUT(
         initiatorType: String(payload.initiatorType || "") || null,
         initiatorName: String(payload.initiatorName || "") || null,
         type: String(payload.type || "") || null,
+        stage: String(payload.stage || "") || null,
         classification: String(payload.classification || "") || null,
         innovationForm: String(payload.innovationForm || "") || null,
         thematic: String(payload.thematic || "") || null,

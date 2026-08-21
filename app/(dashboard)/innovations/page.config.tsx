@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import type { DefaultColumnFormat } from "@/components/dynamic-page";
+import { formatDateId } from "@/lib/helper/date";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -51,6 +52,7 @@ export type InnovationDto = {
   initiatorType: string | null;
   initiatorName: string | null;
   type: string | null;
+  stage: string | null;
   classification: string | null;
   innovationForm: string | null;
   thematic: string | null;
@@ -89,6 +91,7 @@ export type InnovationEditorValues = {
   initiatorType: string;
   initiatorName: string;
   type: string;
+  stage: string;
   classification: string;
   innovationForm: string;
   thematic: string;
@@ -111,6 +114,7 @@ export const initialInnovationEditorValues: InnovationEditorValues = {
   initiatorType: "OPD",
   initiatorName: "",
   type: "Digital",
+  stage: "Inisiatif",
   classification: "Inovasi Perangkat Daerah",
   innovationForm: "Digital",
   thematic: "",
@@ -150,6 +154,8 @@ export const innovationThematicOptions = [
   "Memperkuat kehidupan yang harmonis dengan lingkungan, alam, dan budaya",
 ];
 
+export const innovationStageOptions = ["Inisiatif", "Uji Coba", "Penerapan"];
+
 export const MAX_SUPPORTING_FILE_SIZE = 2 * 1024 * 1024;
 
 export type InnovationTableDto = {
@@ -160,7 +166,7 @@ export type InnovationTableDto = {
   innovationForm: string;
   governmentAffair: string;
   initiator: string;
-  stage: InnovationStage;
+  stage: string;
   trialDate: string;
   ImplementationDate: string;
   DevelopmentDate: string;
@@ -216,27 +222,6 @@ export const initialFormValues: InnovationFormValues = {
   skor: 0,
 };
 
-export const initialInnovations: InnovationTableDto[] = [
-  {
-    id: "innovation-1",
-    number: 1,
-    organization: "Badan Pendapatan Daerah",
-    innovationName: "SIASAT TOP",
-    innovationForm: "Digital",
-    governmentAffair: "Keuangan",
-    initiator: "Ahmad Ashidiq",
-    stage: "Penerapan",
-    trialDate: "2025-08-10",
-    ImplementationDate: "2026-08-10",
-    DevelopmentDate: "2024-08-10",
-    latitude: "0.9867",
-    longitude: "103.4381",
-    awardFileUrl: "",
-    awarded: true,
-    skor: 85,
-  },
-];
-
 export const summaryCards: SummaryCard[] = [
   {
     key: "total",
@@ -260,20 +245,6 @@ export const summaryCards: SummaryCard[] = [
   { key: "award", title: "Penghargaan", color: "bg-[#a97800]", icon: Trophy },
 ];
 
-const formatTableDate = (value: unknown) => {
-  if (typeof value !== "string" || !value.trim()) return "-";
-
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("id-ID", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-};
-
 export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
   { key: "number", title: "#", formatter: (value) => String(value) },
   { key: "organization", title: "Nama Akun" },
@@ -281,30 +252,48 @@ export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
   {
     key: "stage",
     title: "Tahapan Inovasi",
-    formatter: (value) => (
-      <span className="inline-flex min-w-32 justify-center rounded-full bg-emerald-200 px-4 py-1 text-xs font-medium text-emerald-700">
-        {String(value)}
-      </span>
-    ),
+    formatter: (value) => {
+      const stage = String(value) as InnovationStage;
+
+      const stageStyles: Record<InnovationStage, string> = {
+        Inisiatif: "bg-orange-100 text-orange-700",
+        "Uji Coba": "bg-rose-100 text-rose-700",
+        Penerapan: "bg-emerald-100 text-emerald-700",
+      };
+
+      return (
+        <span
+          className={`inline-flex min-w-32 justify-center rounded-full px-4 py-1 text-xs font-medium ${
+            stageStyles[stage] ?? "bg-gray-100 text-gray-700"
+          }`}
+        >
+          {stage}
+        </span>
+      );
+    },
   },
   { key: "initiator", title: "Nama Inisiator" },
   { key: "governmentAffair", title: "Urusan Pemerintahan Utama" },
   {
     key: "trialDate",
     title: "Waktu Uji Coba Inovasi",
-    formatter: formatTableDate,
+    formatter: (value) => formatDateId(value),
   },
   {
     key: "ImplementationDate",
     title: "Waktu Penerapan Inovasi",
-    formatter: formatTableDate,
+    formatter: (value) => formatDateId(value),
   },
   {
     key: "DevelopmentDate",
     title: "Waktu Pengembangan Inovasi",
-    formatter: formatTableDate,
+    formatter: (value) => formatDateId(value),
   },
-  { key: "skor", title: "Estimasi Skor Kematangan" },
+  {
+    key: "skor",
+    title: "Estimasi Skor Kematangan",
+    formatter: (value) => Number(value || 0).toFixed(2),
+  },
   {
     key: "awardFileUrl",
     title: "File Penghargaan",
@@ -512,7 +501,7 @@ export const headerToolbar = ({
         type="button"
         variant="outline"
         onClick={() => setShowFilter((current) => !current)}
-        className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 text-xs font-semibold text-neutral-800 hover:bg-neutral-50"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300! bg-white! px-4 text-xs font-semibold text-neutral-800! hover:bg-neutral-100! hover:text-neutral-900!"
       >
         <Filter className="size-4" />
         Filter
@@ -526,7 +515,7 @@ export const headerToolbar = ({
         type="button"
         variant="outline"
         onClick={onExport}
-        className="inline-flex h-9 items-center gap-2 rounded-md border border-emerald-500 bg-white px-4 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
+        className="inline-flex h-9 items-center gap-2 rounded-md border border-emerald-500! bg-white! px-4 text-xs font-semibold text-emerald-600! hover:bg-emerald-50! hover:text-emerald-700!"
       >
         <Download className="size-4" />
         Export Excel
