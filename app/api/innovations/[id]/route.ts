@@ -9,9 +9,21 @@ const serialize = (item: Awaited<ReturnType<typeof findInnovation>>) => {
     ...item,
     latitude: item.latitude?.toString() ?? "",
     longitude: item.longitude?.toString() ?? "",
+    initiatorType: item.initiatorType ?? "",
+    initiatorName: item.initiatorName ?? "",
+    type: item.type ?? "",
+    stage: item.stage ?? "",
+    classification: item.classification ?? "",
+    innovationForm: item.innovationForm ?? "",
+    thematic: item.thematic ?? "",
+    pkpnCluster: item.pkpnCluster ?? "",
+    pkpnSubCluster: item.pkpnSubCluster ?? "",
+    governmentAffairs: item.governmentAffairs ?? "",
     trialPeriod: item.trialPeriod?.toISOString().slice(0, 10) ?? "",
     implementationPeriod:
       item.implementationPeriod?.toISOString().slice(0, 10) ?? "",
+    description: item.description ?? "",
+    purpose: item.purpose ?? "",
   };
 };
 

@@ -92,13 +92,13 @@ type ActionProps = {
 };
 
 export const renderActions = ({ row, onView, onEdit, onIndicators, onDocuments, onVerification, onHistory, onDelete }: ActionProps) => (
-  <div className="flex justify-end gap-2 text-slate-400">
-    <button onClick={() => onView(row.id)} title="Detail" aria-label="Detail"><Eye className="size-4" /></button>
-    <button onClick={() => onEdit(row.id)} title="Edit" aria-label="Edit"><SquarePen className="size-4" /></button>
-    <button onClick={() => onDocuments(row.id)} title="Dokumen" aria-label="Dokumen"><FileText className="size-4" /></button>
-    <button onClick={() => onVerification(row.id)} title="Verifikasi" aria-label="Verifikasi"><ClipboardCheck className="size-4" /></button>
-    <button onClick={() => onIndicators(row.id)} title="Penilaian" aria-label="Penilaian"><Star className="size-4" /></button>
-    <button onClick={() => onHistory(row.id)} title="Riwayat" aria-label="Riwayat"><History className="size-4" /></button>
+  <div className="flex justify-end gap-1 text-slate-400">
+    <button type="button" onClick={() => onView(row.id)} title="Lihat detail" aria-label="Lihat detail" className="rounded-md p-1.5 transition hover:bg-blue-50 hover:text-blue-600"><Eye className="size-4" /></button>
+    <button type="button" onClick={() => onEdit(row.innovationId)} title="Edit inovasi" aria-label="Edit inovasi" className="rounded-md p-1.5 transition hover:bg-amber-50 hover:text-amber-600"><SquarePen className="size-4" /></button>
+    <button type="button" onClick={() => onDocuments(row.id)} title="Lihat dokumen" aria-label="Lihat dokumen" className="rounded-md p-1.5 transition hover:bg-cyan-50 hover:text-cyan-600"><FileText className="size-4" /></button>
+    <button type="button" onClick={() => onVerification(row.id)} title="Verifikasi peserta" aria-label="Verifikasi peserta" className="rounded-md p-1.5 transition hover:bg-emerald-50 hover:text-emerald-600"><ClipboardCheck className="size-4" /></button>
+    <button type="button" onClick={() => onIndicators(row.id)} title="Beri penilaian" aria-label="Beri penilaian" className="rounded-md p-1.5 transition hover:bg-yellow-50 hover:text-yellow-600"><Star className="size-4" /></button>
+    <button type="button" onClick={() => onHistory(row.id)} title="Lihat riwayat" aria-label="Lihat riwayat" className="rounded-md p-1.5 transition hover:bg-violet-50 hover:text-violet-600"><History className="size-4" /></button>
     {row.status === "DRAFT" ? <button onClick={() => onDelete(row.id)} title="Hapus draft" className="text-red-400" aria-label="Hapus draft">×</button> : null}
   </div>
 );
