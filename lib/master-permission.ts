@@ -53,23 +53,20 @@ export const MASTER_PERMISSIONS: MasterPermission[] = [
     ],
   },
   {
+    model: "innovation-contracts",
+    actions: ["get-all", "get-by-id", "submit", "cancel", "verify"],
+  },
+  {
     model: "innovation-competitions",
-    actions: [
-      "get-all",
-      "get-by-id",
-      "register",
-      "update",
-      "delete",
-      "submit",
-      "verify",
-      "manage-period",
-      "manage-indicators",
-      "manage-juries",
-      "assess",
-      "view-results",
-      "finalize",
-      "export",
-    ],
+    actions: ["get-all", "get-by-id", "submit", "cancel", "verify"],
+  },
+  {
+    model: "competition-periods",
+    actions: ["get-all", "get-by-id", "create", "update", "delete"],
+  },
+  {
+    model: "innovation-approvals",
+    actions: ["get-all", "get-by-id", "approve", "reject"],
   },
   {
     model: "training-reports",

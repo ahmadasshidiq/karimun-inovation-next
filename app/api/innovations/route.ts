@@ -1,11 +1,21 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { innovationOwnerScope } from "@/lib/innovation-access";
+import {
+  ACTIVE_SUBMISSION_STATUSES,
+  getActiveCompetitionPeriod,
+  SUBMISSION_PERMISSION_MODELS,
+  SUBMISSION_TRACKS,
+} from "@/lib/innovation-submission";
+import { hasPermission } from "@/lib/permission";
+import {
+  ensureMinioBucket,
+  getMinioClient,
+  minioBucket,
+  minioPublicUrl,
+} from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
-import { canAccessModel, competitionRole } from "@/lib/competition-permission";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
@@ -24,28 +34,69 @@ export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  if (!canAccessModel(user, "innovations", "get-all"))
-    return NextResponse.json({ message: "Anda tidak memiliki akses ke data inovasi." }, { status: 403 });
 
   const params = request.nextUrl.searchParams;
+  const category = params.get("category");
   const page = Math.max(1, Number(params.get("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(params.get("limit")) || 10));
+  const filterValue = (key: string) => {
+    const value = params.get(key)?.trim();
+    return value && value !== "all" ? value : undefined;
+  };
+  const search = filterValue("search");
+  const submissionStatus = filterValue("submissionStatus");
+  const innovationForm = filterValue("innovationForm");
+  const governmentAffair = filterValue("governmentAffair");
+  const initiator = filterValue("initiator");
+  const stage = filterValue("stage");
 
-  const records = await prisma.innovation.findMany({
-    where: {
-      deletedAt: null,
-      ...(user.role.name === competitionRole.OPD_ADMIN
-        ? { createdBy: { institutionId: user.institutionId } }
-        : {}),
-    },
-    include: {
-      createdBy: { include: { institution: true } },
-      indicatorAssessments: { select: { indicatorId: true, score: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const baseWhere = {
+    deletedAt: null,
+    ...innovationOwnerScope(user),
+    ...(category ? { category } : {}),
+  };
+  const where = {
+    ...baseWhere,
+    ...(search
+      ? { name: { contains: search, mode: "insensitive" as const } }
+      : {}),
+    ...(submissionStatus ? { submissionStatus } : {}),
+    ...(innovationForm ? { innovationForm } : {}),
+    ...(governmentAffair ? { governmentAffairs: governmentAffair } : {}),
+    ...(initiator ? { initiatorName: initiator } : {}),
+    ...(stage ? { stage } : {}),
+  };
 
-  const mapped = records.map((item) => {
+  const [records, governmentAffairOptions, initiatorOptions, activePeriod] =
+    await Promise.all([
+      prisma.innovation.findMany({
+        where,
+        include: {
+          createdBy: { include: { institution: true } },
+          indicatorAssessments: { select: { indicatorId: true, score: true } },
+          submissions: {
+            where: { status: { in: ACTIVE_SUBMISSION_STATUSES } },
+            select: { track: true, periodId: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.innovation.findMany({
+        where: { ...baseWhere, governmentAffairs: { not: null } },
+        distinct: ["governmentAffairs"],
+        select: { governmentAffairs: true },
+        orderBy: { governmentAffairs: "asc" },
+      }),
+      prisma.innovation.findMany({
+        where: { ...baseWhere, initiatorName: { not: null } },
+        distinct: ["initiatorName"],
+        select: { initiatorName: true },
+        orderBy: { initiatorName: "asc" },
+      }),
+      getActiveCompetitionPeriod(),
+    ]);
+
+  const innovations = records.map((item) => {
     const awardFile = Array.isArray(item.files)
       ? item.files.find(
         (file) =>
@@ -58,10 +109,14 @@ export async function GET(request: NextRequest) {
 
     return {
       id: item.id,
+      submissionStatus: item.submissionStatus,
+      approvalStatus: item.approvalStatus,
+      approvalNote: item.approvalNote,
       organization: item.createdBy.institution.name,
       innovationName: item.name,
       innovationForm: item.innovationForm || "-",
       governmentAffair: item.governmentAffairs || "-",
+      psn: item.psn || "-",
       initiator: item.initiatorName || "-",
       stage: item.stage || "-",
       trialDate: dateOnly(item.trialPeriod),
@@ -77,29 +132,27 @@ export async function GET(request: NextRequest) {
           ? awardFile.url
           : "",
       awarded: Boolean(awardFile),
-      skor: item.indicatorAssessments.reduce(
-        (total, assessment) => total + Number(assessment.score),
-        0,
+      contractSubmitted: item.submissions.some(
+        (submission) => submission.track === SUBMISSION_TRACKS.CONTRACT,
       ),
+      competitionSubmitted: item.submissions.some(
+        (submission) =>
+          submission.track === SUBMISSION_TRACKS.COMPETITION &&
+          submission.periodId === activePeriod?.id,
+      ),
+      skor: ["PENDING_REVIEW", "APPROVED"].includes(item.approvalStatus)
+        ? item.indicatorAssessments.reduce(
+            (total, assessment) => total + Number(assessment.score),
+            0,
+          )
+        : 0,
     };
   });
 
-  const filtered = mapped.filter((item) =>
-    [
-      ["organization", item.organization],
-      ["innovationForm", item.innovationForm],
-      ["governmentAffair", item.governmentAffair],
-      ["initiator", item.initiator],
-      ["stage", item.stage],
-    ].every(([key, value]) => {
-      const selected = params.get(key);
-      return !selected || selected === "all" || selected === value;
-    }),
-  );
-
+  // Data sudah difilter di database; summary dihitung dari seluruh hasil filter.
   const offset = (page - 1) * limit;
-  const totalScore = mapped.reduce((total, item) => total + item.skor, 0);
-  const innovationCount = mapped.length;
+  const totalScore = innovations.reduce((total, item) => total + item.skor, 0);
+  const innovationCount = innovations.length;
   const assessmentData = assessmentGroups.map((group) => {
     const score = records.reduce(
       (total, innovation) =>
@@ -124,21 +177,21 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    data: filtered.slice(offset, offset + limit).map((item, index) => ({
+    data: innovations.slice(offset, offset + limit).map((item, index) => ({
       ...item,
       number: offset + index + 1,
     })),
-    total: filtered.length,
+    total: innovations.length,
     summary: {
-      total: mapped.length,
-      initiative: mapped.filter((item) => item.stage === "Inisiatif").length,
-      trial: mapped.filter((item) => item.stage === "Uji Coba").length,
-      implementation: mapped.filter((item) => item.stage === "Penerapan").length,
-      award: mapped.filter((item) => item.awarded).length,
+      total: innovations.length,
+      initiative: innovations.filter((item) => item.stage === "Inisiatif").length,
+      trial: innovations.filter((item) => item.stage === "Uji Coba").length,
+      implementation: innovations.filter((item) => item.stage === "Penerapan").length,
+      award: innovations.filter((item) => item.awarded).length,
       totalScore,
-      averageScore: mapped.length > 0 ? totalScore / mapped.length : 0,
+      averageScore: innovations.length > 0 ? totalScore / innovations.length : 0,
     },
-    mapData: mapped
+    mapData: innovations
       .filter(
         (item) =>
           Number.isFinite(Number(item.latitude)) &&
@@ -154,6 +207,33 @@ export async function GET(request: NextRequest) {
         longitude: Number(item.longitude),
       })),
     assessmentData,
+    submissionAccess: {
+      contract: hasPermission(
+        user.role.permission,
+        SUBMISSION_PERMISSION_MODELS.CONTRACT,
+        "submit",
+      ),
+      competition: hasPermission(
+        user.role.permission,
+        SUBMISSION_PERMISSION_MODELS.COMPETITION,
+        "submit",
+      ),
+    },
+    activeCompetitionPeriod: activePeriod
+      ? {
+          id: activePeriod.id,
+          name: activePeriod.name,
+          endDate: dateOnly(activePeriod.endDate),
+        }
+      : null,
+    options: {
+      governmentAffairs: governmentAffairOptions
+        .map((item) => item.governmentAffairs)
+        .filter((value): value is string => Boolean(value?.trim())),
+      initiators: initiatorOptions
+        .map((item) => item.initiatorName)
+        .filter((value): value is string => Boolean(value?.trim())),
+    },
   });
 }
 
@@ -161,8 +241,6 @@ export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  if (!canAccessModel(user, "innovations", "create"))
-    return NextResponse.json({ message: "Anda tidak memiliki akses untuk menambah inovasi." }, { status: 403 });
 
   try {
     const formData = await request.formData();
@@ -178,8 +256,6 @@ export async function POST(request: NextRequest) {
 
     const categories = ["budget", "business-profile", "haki", "award"];
     const storedFiles: Array<Record<string, string | number>> = [];
-    const uploadDirectory = path.join(process.cwd(), "public", "uploads", "innovations");
-
     for (let index = 0; index < categories.length; index += 1) {
       const file = formData.get(`file_${index}`);
       if (!(file instanceof File) || file.size === 0) continue;
@@ -190,18 +266,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      await mkdir(uploadDirectory, { recursive: true });
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-      const storedName = `${crypto.randomUUID()}-${safeName}`;
-      await writeFile(
-        path.join(uploadDirectory, storedName),
+      const objectName = `innovations/${user.id}/${crypto.randomUUID()}-${safeName}`;
+      await ensureMinioBucket();
+      await getMinioClient().putObject(
+        minioBucket,
+        objectName,
         Buffer.from(await file.arrayBuffer()),
+        file.size,
+        { "Content-Type": file.type },
       );
       storedFiles.push({
         category: categories[index],
         name: file.name,
         size: file.size,
-        url: `/uploads/innovations/${storedName}`,
+        objectName,
+        url: minioPublicUrl(objectName),
       });
     }
 
@@ -218,16 +298,23 @@ export async function POST(request: NextRequest) {
         latitude: nullableNumber(payload.latitude),
         longitude: nullableNumber(payload.longitude),
         status: payload.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+        submissionStatus: ["DRAFT", "SUBMITTED", "INCOMPLETE"].includes(String(payload.submissionStatus)) ? String(payload.submissionStatus) : "INCOMPLETE",
+        approvalStatus: "PENDING_REVIEW",
+        approvalNote: null,
+        approvedById: null,
+        approvedAt: null,
         initiatorType: String(payload.initiatorType || "") || null,
         initiatorName: String(payload.initiatorName || "") || null,
         type: String(payload.type || "") || null,
         stage: String(payload.stage || "") || null,
         classification: String(payload.classification || "") || null,
+        category: String(payload.category || "") || null,
         innovationForm: String(payload.innovationForm || "") || null,
         thematic: String(payload.thematic || "") || null,
         pkpnCluster: String(payload.pkpnCluster || "") || null,
         pkpnSubCluster: String(payload.pkpnSubCluster || "") || null,
         governmentAffairs: String(payload.governmentAffairs || "") || null,
+        psn: String(payload.psn || "") || null,
         trialPeriod: nullableDate(payload.trialPeriod),
         implementationPeriod: nullableDate(payload.implementationPeriod),
         isDevelopment: Boolean(payload.isDevelopment),

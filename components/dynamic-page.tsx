@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn, DARK_GLASS_PANEL_CLASS } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
 const paginationButtonClass = cn(
@@ -18,8 +18,6 @@ const paginationButtonClass = cn(
   "border-slate-200 bg-white text-slate-700",
   "transition-colors hover:bg-slate-50",
   "disabled:cursor-not-allowed disabled:text-slate-400 disabled:opacity-100",
-  "dark:border-slate-200 dark:bg-white dark:text-slate-700",
-  "dark:hover:bg-slate-50 dark:disabled:text-slate-400",
 );
 
 export type DefaultColumnFormat<T = object> = {
@@ -75,8 +73,7 @@ export default function DynamicPage<T extends object>({
   return (
     <div
       className={cn(
-        "rounded-[16px] border border-slate-200 bg-white p-6 text-slate-900 shadow-none dark:text-slate-100",
-        DARK_GLASS_PANEL_CLASS,
+        "rounded-[16px] border border-neutral-200 bg-white p-6 text-slate-700",
         className,
       )}
     >
@@ -86,17 +83,17 @@ export default function DynamicPage<T extends object>({
       <div className="min-w-0" aria-busy={loading}>
         <Table
           className={cn(
-            "min-w-full text-slate-900 dark:text-slate-200",
+            "min-w-full text-slate-700",
             tableClassName,
           )}
         >
-          <TableHeader className="border-b-2 border-slate-300 dark:border-white/20">
-            <TableRow className="border-b-2 border-slate-300 hover:bg-transparent dark:border-white/20">
+          <TableHeader className="border-b-2 border-slate-200">
+            <TableRow className="border-b-2 border-slate-200 hover:bg-transparent">
               {columns.map((column) => (
                 <TableHead
                   key={column.key}
                   className={cn(
-                    "h-auto border-b-2 border-slate-300 px-4 py-5 text-[13px] font-semibold text-slate-700 whitespace-nowrap dark:border-white/20 dark:text-slate-200",
+                    "h-auto border-b-2 border-slate-200 px-4 py-5 text-[13px] font-semibold text-slate-700 whitespace-nowrap",
                     column.textClassName,
                   )}
                 >
@@ -104,7 +101,7 @@ export default function DynamicPage<T extends object>({
                 </TableHead>
               ))}
               {hasActions ? (
-                <TableHead className="h-auto border-b-2 border-slate-300 px-4 py-5 text-[13px] font-semibold text-slate-700 whitespace-nowrap text-right dark:border-white/20 dark:text-slate-200">
+                <TableHead className="sticky right-0 z-20 h-auto border-b-2 border-slate-200 bg-slate-50 px-4 py-5 text-right text-[13px] font-semibold whitespace-nowrap text-slate-700 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
                   Aksi
                 </TableHead>
               ) : null}
@@ -120,7 +117,7 @@ export default function DynamicPage<T extends object>({
                   <TableRow
                     key={rowId}
                     className={cn(
-                      "border-slate-300 hover:bg-slate-50 dark:border-white/20 dark:hover:bg-white/[0.06]",
+                      "border-slate-200 hover:bg-slate-50 has-aria-expanded:bg-slate-50 data-[state=selected]:bg-slate-50",
                       bodyRowClassName,
                     )}
                   >
@@ -130,7 +127,7 @@ export default function DynamicPage<T extends object>({
                         <TableCell
                           key={`${rowId}-${column.key}`}
                           className={cn(
-                            "border-b border-slate-300 px-4 py-5 text-[14px] leading-6 text-slate-700 whitespace-nowrap dark:border-white/20 dark:text-slate-200/95",
+                            "border-b border-slate-200 px-4 py-5 text-[14px] leading-6 text-slate-700 whitespace-nowrap",
                             column.textClassName,
                           )}
                         >
@@ -141,7 +138,7 @@ export default function DynamicPage<T extends object>({
                       );
                     })}
                     {hasActions ? (
-                      <TableCell className="border-b border-slate-300 px-4 py-5 text-right dark:border-white/20">
+                      <TableCell className="sticky right-0 z-10 border-b border-slate-200 bg-slate-50 px-4 py-5 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
                         {renderActions?.(row)}
                       </TableCell>
                     ) : null}
@@ -149,10 +146,10 @@ export default function DynamicPage<T extends object>({
                 );
               })
             ) : (
-              <TableRow className="border-slate-300 bg-slate-50/80 hover:bg-slate-50 dark:border-white/20 dark:bg-white/[0.04] dark:hover:bg-white/[0.04]">
+              <TableRow className="border-slate-200 bg-slate-50/80 hover:bg-slate-50">
                 <TableCell
                   colSpan={columns.length + (hasActions ? 1 : 0)}
-                  className="border-b border-slate-300 py-10 text-center !text-slate-500 dark:border-white/20 dark:!text-slate-400"
+                  className="border-b border-slate-200 py-10 text-center text-slate-500"
                 >
                   {loading ? "Memuat data..." : emptyMessage}
                 </TableCell>
@@ -163,52 +160,52 @@ export default function DynamicPage<T extends object>({
       </div>
 
       {showFooter ? (
-      <div className="mt-6 flex flex-col gap-3 pt-5 text-slate-600 dark:border-white/10 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[13px]">
-          Menampilkan{" "}
-          <span className="font-semibold text-slate-900 dark:text-slate-100">
-            {items.length}
-          </span>{" "}
-          dari{" "}
-          <span className="font-semibold text-slate-900 dark:text-slate-100">
-            {total}
-          </span>{" "}
-          data — Halaman{" "}
-          <span className="font-semibold text-slate-900 dark:text-slate-100">
-            {currentPage}
-          </span>{" "}
-          dari{" "}
-          <span className="font-semibold text-slate-900 dark:text-slate-100">
-            {totalPages}
-          </span>
-        </p>
-
-        {hasPagination ? (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              onClick={() => onPageChange?.(Math.max(currentPage - 1, 1))}
-              disabled={currentPage === 1}
-              className={paginationButtonClass}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="min-w-12 text-center text-[13px] font-semibold">
-              {currentPage} / {totalPages}
+        <div className="mt-6 flex flex-col gap-3 pt-5 text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[13px]">
+            Menampilkan{" "}
+            <span className="font-semibold text-slate-900">
+              {items.length}
+            </span>{" "}
+            dari{" "}
+            <span className="font-semibold text-slate-900">
+              {total}
+            </span>{" "}
+            data — Halaman{" "}
+            <span className="font-semibold text-slate-900">
+              {currentPage}
+            </span>{" "}
+            dari{" "}
+            <span className="font-semibold text-slate-900">
+              {totalPages}
             </span>
-            <Button
-              type="button"
-              onClick={() =>
-                onPageChange?.(Math.min(currentPage + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-              className={paginationButtonClass}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : null}
-      </div>
+          </p>
+
+          {hasPagination ? (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => onPageChange?.(Math.max(currentPage - 1, 1))}
+                disabled={currentPage === 1}
+                className={paginationButtonClass}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-12 text-center text-[13px] font-semibold">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                type="button"
+                onClick={() =>
+                  onPageChange?.(Math.min(currentPage + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className={paginationButtonClass}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
 import { toast } from "@/components/ui/toast";
@@ -11,7 +11,11 @@ import { initialFormValues, type InnovationFormValues } from "./page.config";
 
 export default function CreateInnovationPage() {
   const router = useRouter();
-  const [values, setValues] = useState(initialFormValues);
+  const searchParams = useSearchParams();
+  const [values, setValues] = useState(() => ({
+    ...initialFormValues,
+    category: searchParams.get("category") || initialFormValues.category,
+  }));
   const [submitting, setSubmitting] = useState(false);
 
   const onChange = useCallback(
@@ -28,6 +32,8 @@ export default function CreateInnovationPage() {
         setSubmitting(true);
         const body = new FormData();
         const { files, ...payload } = values;
+        const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+        payload.submissionStatus = (submitter?.value === "SUBMITTED" ? "SUBMITTED" : "DRAFT");
         body.set("payload", JSON.stringify(payload));
         files.forEach((file, index) => {
           if (file instanceof File) body.set(`file_${index}`, file);
@@ -46,7 +52,7 @@ export default function CreateInnovationPage() {
           description: "Data inovasi telah ditambahkan ke dalam daftar.",
           type: "success",
         });
-        router.push("/innovations");
+        router.push(`/innovations?category=${encodeURIComponent(values.category)}`);
         router.refresh();
       } catch (error) {
         toast.add({
@@ -74,7 +80,7 @@ export default function CreateInnovationPage() {
             values={values}
             submitting={submitting}
             onChange={onChange}
-            onCancel={() => router.push("/innovations")}
+            onCancel={() => router.push(`/innovations?category=${encodeURIComponent(values.category)}`)}
             onSubmit={onSubmit}
           />
         </div>

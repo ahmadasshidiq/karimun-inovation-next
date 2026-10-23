@@ -1,45 +1,34 @@
 "use client";
 
-import type React from "react";
 import {
-  Download,
   Eye,
   ExternalLink,
-  Filter,
+  FilePenLine,
   Flame,
-  Plus,
+  FolderInput,
   Ribbon,
   Rocket,
+  Send,
   Sparkles,
-  TriangleAlert,
-  Trophy,
-  Trash2,
-  type LucideIcon,
   SquarePen,
-  FolderInput,
+  Trophy,
+  type LucideIcon,
 } from "lucide-react";
 
 import type { DefaultColumnFormat } from "@/components/dynamic-page";
+import {
+  ActionButton,
+  ActionMenu,
+  DeleteAction,
+  type ActionMenuItem,
+  FilterPanel,
+  FilterSearch,
+  FilterSelect,
+  TableActions,
+  TableToolbar,
+  type FilterOption,
+} from "@/components/table-elements";
 import { formatDateId } from "@/lib/helper/date";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export type InnovationStage = "Inisiatif" | "Uji Coba" | "Penerapan";
 
@@ -49,16 +38,21 @@ export type InnovationDto = {
   latitude: string | null;
   longitude: string | null;
   status: "ACTIVE" | "INACTIVE";
+  submissionStatus: "INCOMPLETE" | "DRAFT" | "SUBMITTED";
+  approvalStatus: "PENDING_REVIEW" | "APPROVED" | "REVISION_REQUIRED";
+  approvalNote: string | null;
   initiatorType: string | null;
   initiatorName: string | null;
   type: string | null;
   stage: string | null;
   classification: string | null;
+  category: string | null;
   innovationForm: string | null;
   thematic: string | null;
   pkpnCluster: string | null;
   pkpnSubCluster: string | null;
   governmentAffairs: string | null;
+  psn: string | null;
   trialPeriod: string | null;
   implementationPeriod: string | null;
   isDevelopment: boolean;
@@ -88,16 +82,19 @@ export type InnovationEditorValues = {
   latitude: string;
   longitude: string;
   status: "ACTIVE" | "INACTIVE";
+  submissionStatus: "INCOMPLETE" | "DRAFT" | "SUBMITTED";
   initiatorType: string;
   initiatorName: string;
   type: string;
   stage: string;
   classification: string;
+  category: string;
   innovationForm: string;
   thematic: string;
   pkpnCluster: string;
   pkpnSubCluster: string;
   governmentAffairs: string;
+  psn: string;
   trialPeriod: string;
   implementationPeriod: string;
   isDevelopment: boolean;
@@ -111,16 +108,19 @@ export const initialInnovationEditorValues: InnovationEditorValues = {
   latitude: "",
   longitude: "",
   status: "ACTIVE",
+  submissionStatus: "INCOMPLETE",
   initiatorType: "OPD",
   initiatorName: "",
   type: "Digital",
   stage: "Inisiatif",
   classification: "Inovasi Perangkat Daerah",
+  category: "perangkat-daerah",
   innovationForm: "Digital",
   thematic: "",
   pkpnCluster: "",
   pkpnSubCluster: "",
   governmentAffairs: "",
+  psn: "",
   trialPeriod: "",
   implementationPeriod: "",
   isDevelopment: false,
@@ -148,10 +148,121 @@ export const innovationClassificationOptions = [
   "Inovasi Masyarakat",
 ];
 
+export const innovationCategoryOptions = [
+  { value: "perangkat-daerah", label: "Perangkat Daerah" },
+  { value: "kecamatan", label: "Kecamatan" },
+  { value: "kelurahan", label: "Kelurahan" },
+  { value: "upt-puskesmas", label: "UPT Puskesmas" },
+  { value: "satuan-pendidikan", label: "Satuan Pendidikan" },
+] as const;
+
+export type InnovationCategory = (typeof innovationCategoryOptions)[number]["value"];
+
 export const innovationThematicOptions = [
   "Memperkokoh ideologi Pancasila, demokrasi, dan hak asasi manusia",
-  "Memantapkan sistem pertahanan keamanan dan mendorong kemandirian bangsa",
-  "Memperkuat kehidupan yang harmonis dengan lingkungan, alam, dan budaya",
+  "Memantapkan sistem pertahanan keamanan negara dan mendorong kemandirian bangsa melalui swasembada pangan, energi, air, ekonomi kreatif, ekonomi hijau, dan ekonomi biru",
+  "Meningkatkan lapangan kerja yang berkualitas, mendorong kewirausahaan, mengembangkan industri kreatif, dan melanjutkan pengembangan infrastruktur",
+  "Memperkuat pembangunan sumber daya manusia (SDM), sains, teknologi, pendidikan, kesehatan, prestasi olahraga, kesetaraan gender, serta penguatan peran perempuan, pemuda, dan penyandang disabilitas",
+  "Melanjutkan hilirisasi dan industrialisasi untuk meningkatkan nilai tambah di dalam negeri",
+  "Membangun dari desa dan dari bawah untuk pemerataan ekonomi dan pemberantasan kemiskinan",
+  "Memperkuat reformasi politik, hukum, dan birokrasi, serta memperkuat pencegahan dan pemberantasan korupsi dan narkoba",
+  "Memperkuat penyelarasan kehidupan yang harmonis dengan lingkungan, alam, dan budaya, serta peningkatan toleransi antarumat beragama untuk mencapai masyarakat yang adil dan makmur",
+];
+
+export const pkpnClusterOptions = [
+  {
+    name: "Kedaulatan Pangan",
+    sub: [
+      "5.000 kampung nelayan merah putih",
+      "4.582 kapal ikan modern",
+      "40.000 lokasi budi daya ikan darat tematik",
+      "Revitalisasi tambak nila Salin 14.090 ha di pantura",
+      "Modeling dan replikasi 2.000 ha tambak udang terintegrasi",
+      "2.000 ha kawasan Sentra industri garam nasional",
+      "Pengembangan kawasan pangan terintegrasi",
+      "Pengembangan kawasan perkebunan (sawit, tebu, kakao, kelapa, kopi, jambu mete, rempah)",
+      "Peningkatan produksi daging, susu, dan telur",
+    ],
+  },
+  {
+    name: "Kemandirian Energi dan Air",
+    sub: [
+      "Mandatori Biodiesel 50 (B50)",
+      "Mandatori Bioetanol 20 (E20)",
+      "Program Pembangkit Listrik Tenaga Surya (PLTS) 100 GW",
+      "Implementasi Standar Kinerja Energi Minimum (SKEM)",
+      "Konversi 6 Juta Unit Motor BBM ke Motor Listrik",
+      "Pembangunan Jaringan Gas Kota (Jargas) untuk 1 Juta Sambungan Rumah (SR)",
+      "Peningkatan Lifting Minyak dan Gas Bumi",
+      "10 Smal Scale Green Modular Refinery and 6 Storage (Deployable Mass Model)",
+      "Eksplorasi 10 Ladang Migas Baru Listrik Pedesaan",
+      "Pengelolaan Sampah menjadi Energi Listrik (PSEL)",
+      "PLTA Skala Besar Terintegrasi",
+      "Kompor Listrik untuk 2-5 Juta Rumah Tangga",
+      "Optimalisasi 45.000 Sumur Minyak Masyarakat",
+      "Optimalisasi 13.000 Sumur Minyak Tua Swasembada Air",
+    ],
+  },
+  {
+    name: "Pendidikan",
+    sub: [
+      "Makan Bergizi Gratis Anak Sekolah",
+      "Revitalisasi Sarana dan Prasarana Sekolah/Madrasah",
+      "Bantuan Perlengkapan Sekolah",
+      "500 Sekolah Nasional Terintegrasi (SNT)",
+      "Studio Guru",
+      "Digitalisasi Pendidikan (2 Juta Papan Interaktif Digital)",
+      "20 Sekolah Garuda Baru, 80 Sekolah Garuda Transformasi",
+      "514 Sekolah Rakyat",
+      "10 Universitas Baru: Medical University berbasis STEMM",
+      "SMK Go Global",
+      "Peningkatan Kesejahteraan Guru, Transfer Langsung Tunjangan",
+    ],
+  },
+  {
+    name: "Kesehatan",
+    sub: [
+      "Makan Bergizi Gratis Ibu Hamil, Ibu Menyusui, dan Balita",
+      "66 Rumah Sakit Upgrade",
+      "Pemeriksaan Kesehatan Gratis",
+      "Penuntasan Tuberkulosis",
+    ],
+  },
+  {
+    name: "Hilirisasi dan Industrialisasi",
+    sub: [
+      "Hilirisasi Industri Strategis",
+      "Mobil Nasional",
+      "Motor Nasional",
+      "Ekosistem Industri Kedirgantaraan",
+      "Pengembangan Industri Semikonduktor",
+    ],
+  },
+  {
+    name: "Infrastruktur Perumahan, dan Ketahanan Bencana",
+    sub: [
+      "Giant Sea Wall",
+      "Rehabilitasi dan Rekonstruksi Pasca Bencana Sumatera",
+      "Gerakan ASRI (Gentengisasi, Pengendalian Sampah, Penghijauan)",
+      "3 Juta Rumah: 1 Juta Rumah Baru & 2 Juta Renovasi Rumah",
+      "Pengembangan Jaringan Kereta Api Nasional",
+    ],
+  },
+  {
+    name: "Ekonomi Kerakyatan dan Desa",
+    sub: [
+      "80.000 Koperasi Desa/Kelurahan Merah Putih",
+      "Percepatan Pembangunan Daerah 3T",
+    ],
+  },
+  {
+    name: "Penurunan Kemiskinan",
+    sub: [
+      "PRO-KESRA Bantuan Sosial Terintegrasi",
+      "PRO-KESRA 10 Juta Penduduk Berusaha dan Bekerja",
+    ],
+  },
+  { name: "NON PKPN", sub: [] },
 ];
 
 export const innovationStageOptions = ["Inisiatif", "Uji Coba", "Penerapan"];
@@ -160,6 +271,7 @@ export const MAX_SUPPORTING_FILE_SIZE = 2 * 1024 * 1024;
 
 export type InnovationTableDto = {
   id: string;
+  submissionStatus: "INCOMPLETE" | "DRAFT" | "SUBMITTED";
   number: number;
   organization: string;
   innovationName: string;
@@ -175,16 +287,39 @@ export type InnovationTableDto = {
   awardFileUrl: string;
   awarded: boolean;
   skor: number;
+  contractSubmitted: boolean;
+  competitionSubmitted: boolean;
+};
+
+export type SubmissionTrack = "CONTRACT" | "COMPETITION";
+
+export type SubmissionAccess = {
+  contract: boolean;
+  competition: boolean;
+};
+
+export type ActiveCompetitionPeriod = {
+  id: string;
+  name: string;
+  endDate: string;
 };
 
 export type InnovationFormValues = Omit<
   InnovationTableDto,
-  "id" | "number" | "awarded"
+  "id" | "number" | "awarded" | "contractSubmitted" | "competitionSubmitted"
 >;
-export type InnovationFilters = Pick<
-  InnovationTableDto,
-  "organization" | "innovationForm" | "governmentAffair" | "initiator"
-> & { stage: string };
+export type InnovationFilters = {
+  search: string;
+  submissionStatus: string;
+  innovationForm: string;
+  governmentAffair: string;
+  initiator: string;
+  stage: string;
+};
+export type InnovationFilterOptions = {
+  governmentAffairs: string[];
+  initiators: string[];
+};
 export type SummaryKey =
   | "total"
   | "initiative"
@@ -200,13 +335,15 @@ export type SummaryCard = {
 
 export const ITEMS_PER_PAGE = 10;
 export const initialFilters: InnovationFilters = {
-  organization: "all",
+  search: "",
+  submissionStatus: "all",
   innovationForm: "all",
   governmentAffair: "all",
   initiator: "all",
   stage: "all",
 };
 export const initialFormValues: InnovationFormValues = {
+  submissionStatus: "INCOMPLETE",
   organization: "Badan Pendapatan Daerah",
   innovationName: "",
   innovationForm: "Digital",
@@ -246,6 +383,20 @@ export const summaryCards: SummaryCard[] = [
 ];
 
 export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
+  {
+    key: "submissionStatus",
+    title: "",
+    formatter: (value) => {
+      const colors = { SUBMITTED: "bg-emerald-500", DRAFT: "bg-amber-400", INCOMPLETE: "bg-red-500" };
+      const status = String(value) as keyof typeof colors;
+      return (
+        <span
+          title={status === "SUBMITTED" ? "Sudah lengkap dan terkirim" : status === "DRAFT" ? "Sudah lengkap tetapi belum terkirim" : "Belum lengkap"}
+          className={`-my-5 -ml-4 block h-[calc(100%+2.5rem)] min-h-16 w-2.5 rounded-l-full ${colors[status] || colors.INCOMPLETE}`}
+        />
+      );
+    },
+  },
   { key: "number", title: "#", formatter: (value) => String(value) },
   { key: "organization", title: "Nama Akun" },
   { key: "innovationName", title: "Nama Inovasi" },
@@ -274,6 +425,7 @@ export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
   },
   { key: "initiator", title: "Nama Inisiator" },
   { key: "governmentAffair", title: "Urusan Pemerintahan Utama" },
+  { key: "psn", title: "Proyek Strategis Nasional (PSN)" },
   {
     key: "trialDate",
     title: "Waktu Uji Coba Inovasi",
@@ -334,286 +486,200 @@ export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
 
 type RenderActionsProps = {
   row: InnovationTableDto;
+  submissionAccess: SubmissionAccess;
+  activeCompetitionPeriod: ActiveCompetitionPeriod | null;
   deleteId: string | null;
-  setDeleteId: React.Dispatch<React.SetStateAction<string | null>>;
+  setDeleteId: (id: string | null) => void;
   onView: (id: string) => void;
   onEdit: (id: string) => void;
   onIndicators: (id: string) => void;
+  onSubmitTrack: (id: string, track: SubmissionTrack) => void;
   onDelete: (id: string) => void | Promise<void>;
 };
 
+const INCOMPLETE_HINT = "Lengkapi dan kirim data inovasi terlebih dahulu.";
+
+const getContractHint = (row: InnovationTableDto) => {
+  if (row.submissionStatus !== "SUBMITTED") return INCOMPLETE_HINT;
+  if (row.contractSubmitted) return "Sudah dikirim sebagai Perjanjian Kinerja.";
+  return undefined;
+};
+
+const getCompetitionHint = (
+  row: InnovationTableDto,
+  period: ActiveCompetitionPeriod | null,
+) => {
+  if (row.submissionStatus !== "SUBMITTED") return INCOMPLETE_HINT;
+  if (!period) return "Periode lomba belum dibuka.";
+  if (row.competitionSubmitted) return `Sudah dikirim ke ${period.name}.`;
+  return `${period.name}, ditutup ${formatDateId(period.endDate)}.`;
+};
+
+const getSubmissionItems = (
+  row: InnovationTableDto,
+  access: SubmissionAccess,
+  period: ActiveCompetitionPeriod | null,
+  onSubmitTrack: (id: string, track: SubmissionTrack) => void,
+): ActionMenuItem[] => [
+  ...(access.contract
+    ? [
+        {
+          label: "Kirim Sebagai Perjanjian Kinerja",
+          icon: FilePenLine,
+          disabled: Boolean(getContractHint(row)),
+          hint: getContractHint(row),
+          onClick: () => onSubmitTrack(row.id, "CONTRACT"),
+        },
+      ]
+    : []),
+  ...(access.competition
+    ? [
+        {
+          label: "Kirim Sebagai Lomba Inovasi",
+          icon: Trophy,
+          disabled:
+            row.submissionStatus !== "SUBMITTED" ||
+            !period ||
+            row.competitionSubmitted,
+          hint: getCompetitionHint(row, period),
+          onClick: () => onSubmitTrack(row.id, "COMPETITION"),
+        },
+      ]
+    : []),
+];
+
 export const renderActions = ({
   row,
+  submissionAccess,
+  activeCompetitionPeriod,
   deleteId,
   setDeleteId,
   onView,
   onEdit,
   onIndicators,
+  onSubmitTrack,
   onDelete,
 }: RenderActionsProps) => (
-  <TooltipProvider delay={250}>
-    <div className="flex justify-end gap-2">
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Lihat inovasi"
-              onClick={() => onView(row.id)}
-              className="rounded-lg text-blue-600 hover:bg-blue-50 hover:text-white"
-            >
-              <Eye className="size-4" />
-            </Button>
-          }
-        />
-        <TooltipContent>Lihat</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Edit inovasi"
-              onClick={() => onEdit(row.id)}
-              className="rounded-lg text-yellow-600 hover:bg-yellow-50 hover:text-white"
-            >
-              <SquarePen className="size-4" />
-            </Button>
-          }
-        />
-        <TooltipContent>Edit</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Indikator inovasi"
-              onClick={() => onIndicators(row.id)}
-              className="rounded-lg text-green-600 hover:bg-green-50 hover:text-white"
-            >
-              <FolderInput className="size-4" />
-            </Button>
-          }
-        />
-        <TooltipContent>Indikator</TooltipContent>
-      </Tooltip>
-
-      <Popover
-        open={deleteId === row.id}
-        onOpenChange={(open) => setDeleteId(open ? row.id : null)}
-      >
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <PopoverTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Hapus inovasi"
-                    className="rounded-lg text-red-500 hover:bg-red-50 hover:text-white"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                }
-              />
-            }
-          />
-          <TooltipContent>Hapus</TooltipContent>
-        </Tooltip>
-        <PopoverContent
-          align="end"
-          sideOffset={8}
-          className="w-[24rem] gap-0 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-xl sm:p-4"
-        >
-          <div className="flex items-start gap-4">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
-              <TriangleAlert className="size-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold leading-6">
-                Yakin ingin menghapus data ini?
-              </p>
-              <p className="mt-1 text-[13px] text-slate-500">
-                Data yang dihapus tidak dapat dikembalikan.
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex justify-end gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setDeleteId(null)}
-              className="h-10 rounded-lg px-5 text-[13px] font-semibold"
-            >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => onDelete(row.id)}
-              className="h-10 rounded-lg bg-red-600 px-5 text-[13px] font-semibold text-white hover:bg-red-700"
-            >
-              Hapus
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  </TooltipProvider>
+  <TableActions>
+    <ActionButton
+      label="Lihat"
+      icon={Eye}
+      tone="blue"
+      onClick={() => onView(row.id)}
+    />
+    <ActionButton
+      label="Edit"
+      icon={SquarePen}
+      tone="yellow"
+      onClick={() => onEdit(row.id)}
+    />
+    <ActionButton
+      label="Indikator"
+      icon={FolderInput}
+      tone="green"
+      onClick={() => onIndicators(row.id)}
+    />
+    {submissionAccess.contract || submissionAccess.competition ? (
+      <ActionMenu
+        label="Kirim"
+        icon={Send}
+        tone="indigo"
+        items={getSubmissionItems(
+          row,
+          submissionAccess,
+          activeCompetitionPeriod,
+          onSubmitTrack,
+        )}
+      />
+    ) : null}
+    <DeleteAction
+      open={deleteId === row.id}
+      onOpenChange={(open) => setDeleteId(open ? row.id : null)}
+      onConfirm={() => onDelete(row.id)}
+    />
+  </TableActions>
 );
 
 type HeaderToolbarProps = {
   onAdd: () => void;
   onExport: () => void;
-  setShowFilter: React.Dispatch<React.SetStateAction<boolean>>;
+  onToggleFilter: () => void;
   activeFilterCount: number;
 };
 
-export const headerToolbar = ({
-  onAdd,
-  onExport,
-  setShowFilter,
-  activeFilterCount,
-}: HeaderToolbarProps) => (
-  <div className="flex flex-wrap items-center justify-between gap-3">
-    <Button
-      type="button"
-      onClick={onAdd}
-      className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2362ee] px-4 text-xs font-semibold text-white hover:bg-blue-700"
-    >
-      <Plus className="size-4" />
-      Tambah Inovasi
-    </Button>
-    <div className="flex flex-wrap gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => setShowFilter((current) => !current)}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300! bg-white! px-4 text-xs font-semibold text-neutral-800! hover:bg-neutral-100! hover:text-neutral-900!"
-      >
-        <Filter className="size-4" />
-        Filter
-        {activeFilterCount > 0 && (
-          <span className="rounded-full bg-[#ffb437] px-1.5 text-[10px] text-white">
-            {activeFilterCount}
-          </span>
-        )}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onExport}
-        className="inline-flex h-9 items-center gap-2 rounded-md border border-emerald-500! bg-white! px-4 text-xs font-semibold text-emerald-600! hover:bg-emerald-50! hover:text-emerald-700!"
-      >
-        <Download className="size-4" />
-        Export Excel
-      </Button>
-    </div>
-  </div>
+export const headerToolbar = (props: HeaderToolbarProps) => (
+  <TableToolbar addLabel="Tambah Inovasi" {...props} />
 );
+
+const toOptions = (values: string[]): FilterOption[] =>
+  values.map((value) => ({ value, label: value }));
+
+const submissionStatusOptions: FilterOption[] = [
+  { value: "INCOMPLETE", label: "Belum Lengkap" },
+  { value: "DRAFT", label: "Lengkap, Belum Terkirim" },
+  { value: "SUBMITTED", label: "Lengkap dan Terkirim" },
+];
 
 type FilterPanelProps = {
   filters: InnovationFilters;
+  options: InnovationFilterOptions;
   setFilter: (key: keyof InnovationFilters, value: string) => void;
+  applyFilters: () => void;
   clearFilters: () => void;
 };
-const filterOptions: Array<{
-  key: keyof InnovationFilters;
-  label: string;
-  allLabel: string;
-  options: string[];
-}> = [
-  {
-    key: "organization",
-    label: "Organisasi Perangkat Daerah",
-    allLabel: "Semua Organisasi Perangkat Daerah",
-    options: ["Badan Pendapatan Daerah", "Dinas Komunikasi dan Informatika"],
-  },
-  {
-    key: "innovationForm",
-    label: "Bentuk Inovasi",
-    allLabel: "Semua Bentuk Inovasi",
-    options: ["Digital", "Non Digital"],
-  },
-  {
-    key: "governmentAffair",
-    label: "Jenis Urusan",
-    allLabel: "Semua Jenis Urusan",
-    options: ["Keuangan", "Pendidikan", "Kesehatan"],
-  },
-  {
-    key: "initiator",
-    label: "Inisiator",
-    allLabel: "Semua Inisiator",
-    options: ["Ahmad Ashidiq", "Admin Karimun"],
-  },
-  {
-    key: "stage",
-    label: "Tahapan Inovasi",
-    allLabel: "Semua Tahapan Inovasi",
-    options: ["Inisiatif", "Uji Coba", "Penerapan"],
-  },
-];
 
 export const filterPanel = ({
   filters,
+  options,
   setFilter,
+  applyFilters,
   clearFilters,
 }: FilterPanelProps) => (
-  <div className="rounded-xl border border-neutral-200 bg-[#fafbfc] p-5">
-    <div className="mb-5 flex items-center justify-between gap-3">
-      <h2 className="text-sm font-bold text-neutral-900">
-        Filter Inovasi Perangkat Daerah
-      </h2>
-      <Button
-        type="button"
-        variant="link"
-        onClick={clearFilters}
-        className="text-xs font-semibold text-blue-600 hover:underline"
-      >
-        Reset Filter
-      </Button>
-    </div>
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      {filterOptions.map((option) => (
-        <div key={option.key} className="space-y-2">
-          <span className="block text-xs font-semibold text-slate-600">
-            {option.label}
-          </span>
-          <Select
-            value={filters[option.key]}
-            onValueChange={(value) => value && setFilter(option.key, value)}
-          >
-            <SelectTrigger className="h-11! w-full rounded-lg border-neutral-300 bg-white px-3 text-xs text-neutral-900 dark:bg-white">
-              <SelectValue>
-                {filters[option.key] === "all"
-                  ? option.allLabel
-                  : filters[option.key]}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="bg-white text-neutral-900">
-              <SelectItem value="all">{option.allLabel}</SelectItem>
-              {option.options.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      ))}
-    </div>
-  </div>
+  <FilterPanel
+    title="Filter Inovasi Perangkat Daerah"
+    onApply={applyFilters}
+    onReset={clearFilters}
+    className="xl:grid-cols-3"
+  >
+    <FilterSearch
+      value={filters.search}
+      onChange={(value) => setFilter("search", value)}
+      placeholder="Cari nama inovasi..."
+    />
+    <FilterSelect
+      label="Status Pengiriman"
+      allLabel="Semua Status"
+      value={filters.submissionStatus}
+      options={submissionStatusOptions}
+      onChange={(value) => setFilter("submissionStatus", value)}
+    />
+    <FilterSelect
+      label="Bentuk Inovasi"
+      allLabel="Semua Bentuk Inovasi"
+      value={filters.innovationForm}
+      options={toOptions(innovationTypeOptions)}
+      onChange={(value) => setFilter("innovationForm", value)}
+    />
+    <FilterSelect
+      label="Jenis Urusan"
+      allLabel="Semua Jenis Urusan"
+      value={filters.governmentAffair}
+      options={toOptions(options.governmentAffairs)}
+      onChange={(value) => setFilter("governmentAffair", value)}
+    />
+    <FilterSelect
+      label="Inisiator"
+      allLabel="Semua Inisiator"
+      value={filters.initiator}
+      options={toOptions(options.initiators)}
+      onChange={(value) => setFilter("initiator", value)}
+    />
+    <FilterSelect
+      label="Tahapan Inovasi"
+      allLabel="Semua Tahapan Inovasi"
+      value={filters.stage}
+      options={toOptions(innovationStageOptions)}
+      onChange={(value) => setFilter("stage", value)}
+    />
+  </FilterPanel>
 );
