@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" fill="#0B1F4B"/>
+  <!-- Decorative grid -->
+  <path d="M0 60H640M0 120H640M0 180H640M0 240H640M0 300H640" stroke="#142E6B" stroke-width="1" stroke-dasharray="6 6"/>
+  
+  <!-- Presentation Screen / Stage -->
+  <rect x="140" y="50" width="360" height="190" rx="12" fill="#142E6B" stroke="#1D4ED8" stroke-width="2"/>
+  <rect x="160" y="70" width="180" height="14" rx="4" fill="#3B82F6"/>
+  <rect x="160" y="96" width="320" height="8" rx="4" fill="#274F8B"/>
+  <rect x="160" y="114" width="280" height="8" rx="4" fill="#274F8B"/>
+  <rect x="160" y="132" width="220" height="8" rx="4" fill="#274F8B"/>
+
+  <!-- Bar Chart on Presentation Screen -->
+  <rect x="360" y="150" width="20" height="60" rx="3" fill="#1D4ED8"/>
+  <rect x="390" y="130" width="20" height="80" rx="3" fill="#3B82F6"/>
+  <rect x="420" y="110" width="20" height="100" rx="3" fill="#60A5FA"/>
+  <rect x="450" y="90" width="20" height="120" rx="3" fill="#93C5FD"/>
+
+  <!-- Speaker & Audience silhouettes -->
+  <circle cx="200" cy="270" r="22" fill="#3B82F6"/>
+  <path d="M165 330C165 295 190 288 200 288C210 288 235 295 235 330H165Z" fill="#3B82F6"/>
+  
+  <circle cx="320" cy="285" r="16" fill="#1E3E8C"/>
+  <path d="M290 340C290 310 310 305 320 305C330 305 350 310 350 340H290Z" fill="#1E3E8C"/>
+
+  <circle cx="400" cy="285" r="16" fill="#1E3E8C"/>
+  <path d="M370 340C370 310 390 305 400 305C410 305 430 310 430 340H370Z" fill="#1E3E8C"/>
+
+  <circle cx="480" cy="285" r="16" fill="#1E3E8C"/>
+  <path d="M450 340C450 310 470 305 480 305C490 305 510 310 510 340H450Z" fill="#1E3E8C"/>
+
+  <!-- Badge -->
+  <rect x="30" y="30" width="100" height="28" rx="6" fill="#1D4ED8"/>
+  <text x="45" y="48" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="700">SOSIALISASI</text>
+</svg>

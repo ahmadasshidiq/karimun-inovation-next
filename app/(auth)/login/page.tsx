@@ -50,7 +50,7 @@ export default function LoginPage() {
         });
         const result = (await response.json().catch(() => ({}))) as {
           message?: string;
-          data?: Record<string, unknown>;
+          data?: Record<string, unknown> & { redirectTo?: string };
         };
 
         if (!response.ok) {
@@ -66,7 +66,7 @@ export default function LoginPage() {
           description: "Selamat datang kembali.",
           type: "success",
         });
-        router.replace("/dashboard");
+        router.replace(result.data?.redirectTo || "/dashboard");
         router.refresh();
       } catch (error) {
         toast.add({

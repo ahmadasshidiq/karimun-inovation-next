@@ -45,8 +45,6 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log("User found:", user);
-
     if (!user) {
       scryptSync(password, "invalid-login-salt", 64);
       return unauthorizedResponse();
@@ -103,6 +101,10 @@ export async function POST(request: Request) {
         permission: user.role.permission,
         institution: user.institution.name,
         nomenclature: user.institution.nomenclature.name,
+        redirectTo:
+          user.role.name === "Juri / Tim Penilai"
+            ? "/lomba-inovasi/inovasi-opd"
+            : "/dashboard",
       },
     });
 

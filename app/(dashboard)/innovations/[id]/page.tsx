@@ -35,10 +35,22 @@ export default function InnovationDetailPage({
         setValues({
           ...getInitialDetail(id),
           ...result.data,
-          latitude: result.data.latitude || "",
-          longitude: result.data.longitude || "",
-          trialPeriod: result.data.trialPeriod || "",
-          implementationPeriod: result.data.implementationPeriod || "",
+          latitude: result.data.latitude ?? "",
+          longitude: result.data.longitude ?? "",
+          initiatorType: result.data.initiatorType ?? "",
+          initiatorName: result.data.initiatorName ?? "",
+          type: result.data.type ?? "",
+          stage: result.data.stage ?? "",
+          classification: result.data.classification ?? "",
+          innovationForm: result.data.innovationForm ?? "",
+          thematic: result.data.thematic ?? "",
+          pkpnCluster: result.data.pkpnCluster ?? "",
+          pkpnSubCluster: result.data.pkpnSubCluster ?? "",
+          governmentAffairs: result.data.governmentAffairs ?? "",
+          trialPeriod: result.data.trialPeriod ?? "",
+          implementationPeriod: result.data.implementationPeriod ?? "",
+          description: result.data.description ?? "",
+          purpose: result.data.purpose ?? "",
         });
       } catch (error) {
         toast.add({

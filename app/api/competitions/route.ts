@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { canAccessCompetition, competitionRole } from "@/lib/competition-permission";
 import { prisma } from "@/lib/prisma";
 
 const unauthorized = () => NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
@@ -8,6 +9,8 @@ const unauthorized = () => NextResponse.json({ message: "Sesi tidak valid." }, {
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) return unauthorized();
+  if (!canAccessCompetition(user, "get-all"))
+    return NextResponse.json({ message: "Anda tidak memiliki akses ke data lomba." }, { status: 403 });
 
   const params = request.nextUrl.searchParams;
   const page = Math.max(1, Number(params.get("page")) || 1);
@@ -31,6 +34,12 @@ export async function GET(request: NextRequest) {
       deletedAt: null,
       ...(search ? { name: { contains: search, mode: "insensitive" as const } } : {}),
     },
+    ...(user.role.name === competitionRole.OPD_ADMIN
+      ? { institutionId: user.institutionId }
+      : {}),
+    ...(user.role.name === competitionRole.JUDGE
+      ? { judgeAssignments: { some: { judgeId: user.id } } }
+      : {}),
   };
   const records = await prisma.competitionParticipant.findMany({
     where,
@@ -48,6 +57,7 @@ export async function GET(request: NextRequest) {
   const offset = (page - 1) * limit;
   const data = filtered.slice(offset, offset + limit).map((item, index) => ({
     id: item.id,
+    innovationId: item.innovationId,
     number: offset + index + 1,
     institutionId: item.institutionId,
     organization: item.institution.name,
@@ -80,6 +90,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) return unauthorized();
+  if (!canAccessCompetition(user, "register"))
+    return NextResponse.json({ message: "Anda tidak memiliki akses untuk mendaftarkan inovasi." }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const innovationId = typeof body.innovationId === "string" ? body.innovationId : "";
   const period = await prisma.competitionPeriod.findFirst({ where: { isActive: true } });
@@ -101,4 +113,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Gagal mendaftarkan inovasi." }, { status: 500 });
   }
 }
-

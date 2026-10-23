@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { canAccessModel, competitionRole } from "@/lib/competition-permission";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
@@ -23,13 +24,20 @@ export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!canAccessModel(user, "innovations", "get-all"))
+    return NextResponse.json({ message: "Anda tidak memiliki akses ke data inovasi." }, { status: 403 });
 
   const params = request.nextUrl.searchParams;
   const page = Math.max(1, Number(params.get("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(params.get("limit")) || 10));
 
   const records = await prisma.innovation.findMany({
-    where: { deletedAt: null },
+    where: {
+      deletedAt: null,
+      ...(user.role.name === competitionRole.OPD_ADMIN
+        ? { createdBy: { institutionId: user.institutionId } }
+        : {}),
+    },
     include: {
       createdBy: { include: { institution: true } },
       indicatorAssessments: { select: { indicatorId: true, score: true } },
@@ -153,6 +161,8 @@ export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!canAccessModel(user, "innovations", "create"))
+    return NextResponse.json({ message: "Anda tidak memiliki akses untuk menambah inovasi." }, { status: 403 });
 
   try {
     const formData = await request.formData();

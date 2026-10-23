@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" fill="#0B1F4B"/>
+  <!-- Decorative grid -->
+  <path d="M0 60H640M0 120H640M0 180H640M0 240H640M0 300H640" stroke="#142E6B" stroke-width="1" stroke-dasharray="6 6"/>
+  
+  <!-- Digital Dashboard / Laptop -->
+  <rect x="130" y="60" width="380" height="210" rx="14" fill="#0E275E" stroke="#1D4ED8" stroke-width="2"/>
+  <rect x="130" y="60" width="380" height="36" rx="14" fill="#142E6B"/>
+  <circle cx="152" cy="78" r="5" fill="#EF4444"/>
+  <circle cx="168" cy="78" r="5" fill="#F59E0B"/>
+  <circle cx="184" cy="78" r="5" fill="#10B981"/>
+  <text x="210" y="82" fill="#94B4D9" font-family="'Plus Jakarta Sans', sans-serif" font-size="11">SIM IID - Modul 36 Indikator</text>
+
+  <!-- Laptop Base -->
+  <path d="M90 280H550L530 295H110L90 280Z" fill="#1E3E8C"/>
+
+  <!-- Dashboard Widgets Inside Screen -->
+  <rect x="155" y="115" width="105" height="65" rx="8" fill="#142E6B"/>
+  <text x="168" y="136" fill="#94B4D9" font-family="'Plus Jakarta Sans', sans-serif" font-size="10">Tata Kelola</text>
+  <text x="168" y="160" fill="#60A5FA" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="700">18 Indikator</text>
+
+  <rect x="270" y="115" width="105" height="65" rx="8" fill="#142E6B"/>
+  <text x="283" y="136" fill="#94B4D9" font-family="'Plus Jakarta Sans', sans-serif" font-size="10">Pelayanan Publik</text>
+  <text x="283" y="160" fill="#34D399" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="700">18 Indikator</text>
+
+  <rect x="385" y="115" width="105" height="65" rx="8" fill="#142E6B"/>
+  <text x="398" y="136" fill="#94B4D9" font-family="'Plus Jakarta Sans', sans-serif" font-size="10">Status Evidensi</text>
+  <text x="398" y="160" fill="#FBBF24" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="700">Terverifikasi</text>
+
+  <rect x="155" y="195" width="335" height="55" rx="8" fill="#142E6B"/>
+  <path d="M175 225L230 210L290 230L360 205L430 215L470 200" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="470" cy="200" r="4" fill="#38BDF8"/>
+
+  <!-- Badge -->
+  <rect x="30" y="30" width="115" height="28" rx="6" fill="#1D4ED8"/>
+  <text x="42" y="48" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="700">BIMTEK SISTEM</text>
+</svg>

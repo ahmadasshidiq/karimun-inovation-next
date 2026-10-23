@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" fill="none">
+  <!-- Outer Shield Contour -->
+  <path d="M100 10 L180 35 V130 C180 185 145 220 100 235 C55 220 20 185 20 130 V35 L100 10 Z" fill="#0E4429" stroke="#E5A93C" stroke-width="6" stroke-linejoin="round"/>
+  
+  <!-- Inner Shield -->
+  <path d="M100 22 L168 44 V126 C168 174 138 206 100 220 C62 206 32 174 32 126 V44 L100 22 Z" fill="#1B4D3E"/>
+  
+  <!-- Sky / Top Half -->
+  <path d="M34 46 L100 24 L166 46 V115 H34 V46 Z" fill="#1D4ED8"/>
+  
+  <!-- Sea / Bottom Half -->
+  <path d="M34 115 H166 V126 C166 172 138 204 100 218 C62 204 34 172 34 126 V115 Z" fill="#0284C7"/>
+  
+  <!-- Waves -->
+  <path d="M34 140 C55 130 75 145 100 135 C125 125 145 140 166 130 V150 C145 160 125 145 100 155 C75 165 55 150 34 160 Z" fill="#FFFFFF" opacity="0.8"/>
+  <path d="M34 165 C55 155 75 170 100 160 C125 150 145 165 166 155 V175 C145 185 125 170 100 180 C75 190 55 175 34 185 Z" fill="#FACC15" opacity="0.9"/>
+
+  <!-- Golden Star on Top -->
+  <polygon points="100,32 104,44 116,44 106,52 110,64 100,56 90,64 94,52 84,44 96,44" fill="#FACC15" stroke="#CA8A04" stroke-width="1"/>
+
+  <!-- Traditional Kris / Weapon & Rice-Cotton symbol -->
+  <path d="M100 68 V140" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="100" cy="140" r="5" fill="#FACC15"/>
+
+  <!-- Ribbon Banner at Bottom with Motto -->
+  <path d="M40 195 L100 188 L160 195 L155 210 L100 203 L45 210 Z" fill="#FACC15" stroke="#A16207" stroke-width="1.5"/>
+  <text x="100" y="202" fill="#0B1F4B" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="9" font-weight="900" text-anchor="middle" letter-spacing="1">BERAZAM</text>
+  
+  <text x="100" y="112" fill="#FFFFFF" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="11" font-weight="800" text-anchor="middle" letter-spacing="0.5">KARIMUN</text>
+</svg>

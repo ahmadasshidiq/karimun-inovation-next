@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" fill="#0B1F4B"/>
+  <!-- Decorative grid -->
+  <path d="M0 60H640M0 120H640M0 180H640M0 240H640M0 300H640" stroke="#142E6B" stroke-width="1" stroke-dasharray="6 6"/>
+  
+  <!-- Clipboard / Validation Board -->
+  <rect x="220" y="50" width="200" height="260" rx="16" fill="#142E6B" stroke="#1D4ED8" stroke-width="2"/>
+  
+  <!-- Clipboard Clip -->
+  <rect x="270" y="38" width="100" height="24" rx="6" fill="#1D4ED8"/>
+  <rect x="290" y="44" width="60" height="12" rx="3" fill="#0B1F4B"/>
+
+  <!-- Checklist Rows -->
+  <g transform="translate(245, 85)">
+    <circle cx="12" cy="12" r="10" fill="#10B981"/>
+    <path d="M8 12L11 15L16 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    <rect x="32" y="8" width="120" height="8" rx="4" fill="#60A5FA"/>
+  </g>
+
+  <g transform="translate(245, 125)">
+    <circle cx="12" cy="12" r="10" fill="#10B981"/>
+    <path d="M8 12L11 15L16 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    <rect x="32" y="8" width="110" height="8" rx="4" fill="#60A5FA"/>
+  </g>
+
+  <g transform="translate(245, 165)">
+    <circle cx="12" cy="12" r="10" fill="#10B981"/>
+    <path d="M8 12L11 15L16 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    <rect x="32" y="8" width="125" height="8" rx="4" fill="#60A5FA"/>
+  </g>
+
+  <g transform="translate(245, 205)">
+    <circle cx="12" cy="12" r="10" fill="#F59E0B"/>
+    <path d="M12 7V13M12 16V17" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    <rect x="32" y="8" width="95" height="8" rx="4" fill="#94B4D9"/>
+  </g>
+
+  <g transform="translate(245, 245)">
+    <circle cx="12" cy="12" r="10" fill="#10B981"/>
+    <path d="M8 12L11 15L16 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    <rect x="32" y="8" width="115" height="8" rx="4" fill="#60A5FA"/>
+  </g>
+
+  <!-- Magnifying Glass Icon -->
+  <g transform="translate(130, 160)">
+    <circle cx="40" cy="40" r="32" stroke="#38BDF8" stroke-width="6" fill="#0E275E" opacity="0.9"/>
+    <path d="M64 64L85 85" stroke="#38BDF8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M28 40L36 48L52 32" stroke="#34D399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Badge -->
+  <rect x="30" y="30" width="105" height="28" rx="6" fill="#1D4ED8"/>
+  <text x="42" y="48" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="700">VALIDASI</text>
+</svg>
