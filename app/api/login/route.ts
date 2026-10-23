@@ -101,10 +101,6 @@ export async function POST(request: Request) {
         permission: user.role.permission,
         institution: user.institution.name,
         nomenclature: user.institution.nomenclature.name,
-        redirectTo:
-          user.role.name === "Juri / Tim Penilai"
-            ? "/lomba-inovasi/inovasi-opd"
-            : "/dashboard",
       },
     });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { innovationOwnerScope } from "@/lib/innovation-access";
 import { getMinioClient, minioBucket } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
 
@@ -8,11 +9,16 @@ const findDocument = (
   id: string,
   indicatorId: string,
   documentId: string,
+  user: Awaited<ReturnType<typeof getAuthenticatedUser>>,
 ) =>
   prisma.innovationIndicatorDocument.findFirst({
     where: {
       id: documentId,
-      assessment: { innovationId: id, indicatorId: Number(indicatorId) },
+      assessment: {
+        innovationId: id,
+        indicatorId: Number(indicatorId),
+        ...(user ? { innovation: innovationOwnerScope(user) } : {}),
+      },
     },
   });
 
@@ -20,11 +26,12 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string; indicatorId: string; documentId: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id, indicatorId, documentId } = await context.params;
-  const document = await findDocument(id, indicatorId, documentId);
+  const document = await findDocument(id, indicatorId, documentId, user);
   if (!document)
     return NextResponse.json({ message: "Dokumen tidak ditemukan." }, { status: 404 });
 
@@ -47,11 +54,12 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string; indicatorId: string; documentId: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id, indicatorId, documentId } = await context.params;
-  const document = await findDocument(id, indicatorId, documentId);
+  const document = await findDocument(id, indicatorId, documentId, user);
   if (!document)
     return NextResponse.json({ message: "Dokumen tidak ditemukan." }, { status: 404 });
 

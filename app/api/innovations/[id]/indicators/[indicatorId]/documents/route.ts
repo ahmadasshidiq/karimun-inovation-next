@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { innovationOwnerScope } from "@/lib/innovation-access";
 import { ensureMinioBucket, getMinioClient, minioBucket, minioPublicUrl } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
+const MIME_BY_EXTENSION: Record<string, string> = {
+  PDF: "application/pdf",
+  JPG: "image/jpeg",
+  JPEG: "image/jpeg",
+  PNG: "image/png",
+  MP4: "video/mp4",
+};
+
+const INDICATOR_FILE_TYPES: Record<number, string[]> = {
+  1: ["PDF"], 2: ["PDF"], 3: ["PDF"], 4: ["PDF", "JPEG", "JPG", "PNG"],
+  5: ["PDF"], 6: ["PDF"], 7: ["PDF", "JPEG", "JPG", "PNG"], 8: ["PDF"],
+  9: ["PDF"], 10: ["JPEG", "JPG", "PNG"], 11: ["PDF", "JPG", "JPEG", "PNG"],
+  12: ["JPEG", "JPG", "PNG"], 13: ["PDF"], 14: ["JPG", "JPEG", "PNG"],
+  15: ["JPG", "JPEG", "PNG"], 16: ["PDF"], 17: ["PDF"],
+  18: ["PDF", "JPG", "JPEG", "PNG"], 19: ["JPEG", "JPG", "PNG", "PDF"],
+  20: ["MP4", "JPG", "JPEG", "PNG"],
+};
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string; indicatorId: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id, indicatorId: rawIndicatorId } = await context.params;
@@ -19,12 +37,28 @@ export async function POST(
   const formData = await request.formData();
   const file = formData.get("file");
   const documentTitle = String(formData.get("documentTitle") || "").trim();
+  const innovation = await prisma.innovation.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+      ...innovationOwnerScope(user),
+    },
+    select: { id: true },
+  });
+  if (!innovation)
+    return NextResponse.json({ message: "Inovasi tidak ditemukan." }, { status: 404 });
 
   if (!Number.isInteger(indicatorId) || !(file instanceof File) || !documentTitle)
     return NextResponse.json({ message: "Data dokumen tidak lengkap." }, { status: 400 });
-  if (!ALLOWED_TYPES.has(file.type) || file.size > MAX_FILE_SIZE)
+  const allowedExtensions = INDICATOR_FILE_TYPES[indicatorId];
+  const extension = file.name.toUpperCase().split(".").pop() || "";
+  const isAllowed = Boolean(
+    allowedExtensions?.includes(extension) &&
+      MIME_BY_EXTENSION[extension] === file.type,
+  );
+  if (!isAllowed || file.size > MAX_FILE_SIZE)
     return NextResponse.json(
-      { message: "File harus PDF/JPG/PNG dengan ukuran maksimal 10 MB." },
+      { message: `Format file tidak sesuai. Format yang diizinkan: ${allowedExtensions?.join("/") || "tidak tersedia"}. Ukuran maksimal 10 MB.` },
       { status: 400 },
     );
 

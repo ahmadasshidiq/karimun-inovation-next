@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { innovationOwnerScope } from "@/lib/innovation-access";
 import { prisma } from "@/lib/prisma";
 
 const serialize = (item: Awaited<ReturnType<typeof findInnovation>>) => {
@@ -27,9 +28,13 @@ const serialize = (item: Awaited<ReturnType<typeof findInnovation>>) => {
   };
 };
 
-const findInnovation = (id: string) =>
+const findInnovation = (id: string, user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
   prisma.innovation.findFirst({
-    where: { id, deletedAt: null },
+    where: {
+      id,
+      deletedAt: null,
+      ...(user ? innovationOwnerScope(user) : {}),
+    },
     include: {
       createdBy: {
         select: { id: true, username: true, fullname: true, email: true },
@@ -41,11 +46,12 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id } = await context.params;
-  const item = await findInnovation(id);
+  const item = await findInnovation(id, user);
   if (!item)
     return NextResponse.json({ message: "Inovasi tidak ditemukan." }, { status: 404 });
 
@@ -56,11 +62,12 @@ export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id } = await context.params;
-  if (!(await findInnovation(id)))
+  if (!(await findInnovation(id, user)))
     return NextResponse.json({ message: "Inovasi tidak ditemukan." }, { status: 404 });
 
   try {
@@ -75,6 +82,11 @@ export async function PUT(
       data: {
         name: String(payload.name || "").trim(),
         status: payload.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+        submissionStatus: ["DRAFT", "SUBMITTED", "INCOMPLETE"].includes(String(payload.submissionStatus)) ? String(payload.submissionStatus) : "INCOMPLETE",
+        approvalStatus: "PENDING_REVIEW",
+        approvalNote: null,
+        approvedById: null,
+        approvedAt: null,
         latitude: nullableNumber(payload.latitude),
         longitude: nullableNumber(payload.longitude),
         initiatorType: String(payload.initiatorType || "") || null,
@@ -82,11 +94,13 @@ export async function PUT(
         type: String(payload.type || "") || null,
         stage: String(payload.stage || "") || null,
         classification: String(payload.classification || "") || null,
+        category: String(payload.category || "") || null,
         innovationForm: String(payload.innovationForm || "") || null,
         thematic: String(payload.thematic || "") || null,
         pkpnCluster: String(payload.pkpnCluster || "") || null,
         pkpnSubCluster: String(payload.pkpnSubCluster || "") || null,
         governmentAffairs: String(payload.governmentAffairs || "") || null,
+        psn: String(payload.psn || "") || null,
         trialPeriod: nullableDate(payload.trialPeriod),
         implementationPeriod: nullableDate(payload.implementationPeriod),
         isDevelopment: Boolean(payload.isDevelopment),
@@ -95,7 +109,7 @@ export async function PUT(
       },
     });
 
-    const item = await findInnovation(id);
+    const item = await findInnovation(id, user);
     return NextResponse.json({ message: "Inovasi berhasil diperbarui.", data: serialize(item) });
   } catch {
     return NextResponse.json({ message: "Gagal memperbarui inovasi." }, { status: 500 });
@@ -106,12 +120,17 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id } = await context.params;
   const result = await prisma.innovation.updateMany({
-    where: { id, deletedAt: null },
+    where: {
+      id,
+      deletedAt: null,
+      ...innovationOwnerScope(user),
+    },
     data: { deletedAt: new Date() },
   });
   if (!result.count)

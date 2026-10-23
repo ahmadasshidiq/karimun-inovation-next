@@ -1,17 +1,17 @@
 "use client";
 
-import type React from "react";
-import { Plus, Search, SquarePen, Trash2, TriangleAlert } from "lucide-react";
+import { SquarePen } from "lucide-react";
 
 import type { DefaultColumnFormat } from "@/components/dynamic-page";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  ActionButton,
+  DeleteAction,
+  FilterPanel,
+  FilterSearch,
+  TableActions,
+  TableToolbar,
+} from "@/components/table-elements";
+import { Badge } from "@/components/ui/badge";
 import { MASTER_PERMISSIONS } from "@/lib/master-permission";
 
 export type RolePermission = { model: string; actions: string[] };
@@ -27,7 +27,15 @@ export type RoleListResponse = {
   message?: string;
 };
 
+export type RoleFilters = {
+  search: string;
+};
+
 export const ITEMS_PER_PAGE = 10;
+
+export const initialFilters: RoleFilters = {
+  search: "",
+};
 
 export const normalizeRolePermissions = (
   permission: RoleDto["permission"],
@@ -75,35 +83,49 @@ export const columnFormats: DefaultColumnFormat<RoleDto>[] = [
   },
 ];
 
-export const headerToolbar = ({
-  searchTerm,
-  setSearchTerm,
-  onAdd,
-}: {
-  searchTerm: string;
-  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+type HeaderToolbarProps = {
   onAdd: () => void;
-}) => (
-  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <Button
-      type="button"
-      onClick={onAdd}
-      className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2362ee] px-4 text-xs font-semibold text-white hover:bg-blue-700"
-    >
-      <Plus />
-      Tambah Role
-    </Button>
-    <div className="relative w-full sm:max-w-xs">
-      <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-      <Input
-        className="h-9 border-slate-200 bg-white pl-9 text-slate-900 placeholder:text-slate-400"
-        placeholder="Cari nama role..."
-        value={searchTerm}
-        onChange={(event) => setSearchTerm(event.target.value)}
-      />
-    </div>
-  </div>
+  onToggleFilter: () => void;
+  activeFilterCount: number;
+};
+
+export const headerToolbar = (props: HeaderToolbarProps) => (
+  <TableToolbar addLabel="Tambah Role" {...props} />
 );
+
+type FilterPanelProps = {
+  filters: RoleFilters;
+  setFilter: (key: keyof RoleFilters, value: string) => void;
+  applyFilters: () => void;
+  clearFilters: () => void;
+};
+
+export const filterPanel = ({
+  filters,
+  setFilter,
+  applyFilters,
+  clearFilters,
+}: FilterPanelProps) => (
+  <FilterPanel
+    title="Filter Role"
+    onApply={applyFilters}
+    onReset={clearFilters}
+  >
+    <FilterSearch
+      value={filters.search}
+      onChange={(value) => setFilter("search", value)}
+      placeholder="Cari nama role..."
+    />
+  </FilterPanel>
+);
+
+type RenderActionsProps = {
+  row: RoleDto;
+  deleteId: string | null;
+  setDeleteId: (id: string | null) => void;
+  onEdit: (role: RoleDto) => void;
+  onDelete: (id: string) => void | Promise<void>;
+};
 
 export const renderActions = ({
   row,
@@ -111,79 +133,19 @@ export const renderActions = ({
   setDeleteId,
   onEdit,
   onDelete,
-}: {
-  row: RoleDto;
-  deleteId: string | null;
-  setDeleteId: React.Dispatch<React.SetStateAction<string | null>>;
-  onEdit: (role: RoleDto) => void;
-  onDelete: (id: string) => void | Promise<void>;
-}) => (
-  <div className="flex justify-end gap-1">
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className="text-blue-600 hover:bg-blue-50 hover:text-white"
+}: RenderActionsProps) => (
+  <TableActions>
+    <ActionButton
+      label="Edit"
+      icon={SquarePen}
+      tone="yellow"
       onClick={() => onEdit(row)}
-    >
-      <SquarePen />
-      <span className="sr-only">Edit role</span>
-    </Button>
-    <Popover
+    />
+    <DeleteAction
       open={deleteId === row.id}
       onOpenChange={(open) => setDeleteId(open ? row.id : null)}
-    >
-      <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:bg-red-50 hover:text-white"
-          />
-        }
-      >
-        <Trash2 />
-        <span className="sr-only">Hapus role</span>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-[24rem] gap-0 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-xl sm:p-4"
-      >
-        <div className="flex items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
-            <TriangleAlert className="size-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold leading-6">
-              Yakin ingin menghapus data ini?
-            </p>
-            <p className="mt-1 text-[13px] text-slate-500">
-              Role yang masih digunakan oleh pengguna tidak dapat dihapus.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-10 rounded-lg px-5 text-[13px] font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-            onClick={() => setDeleteId(null)}
-          >
-            Batal
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            className="h-10 rounded-lg bg-red-600 px-5 text-[13px] font-semibold text-white hover:bg-red-700"
-            onClick={() => void onDelete(row.id)}
-          >
-            Hapus
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  </div>
+      onConfirm={() => onDelete(row.id)}
+      description="Role yang masih digunakan oleh pengguna tidak dapat dihapus."
+    />
+  </TableActions>
 );

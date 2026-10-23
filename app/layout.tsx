@@ -1,7 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { connection } from "next/server";
 import { Providers } from "@/components/providers";
 
 const inter = Inter({
@@ -34,8 +33,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await connection();
-
   return (
     <html lang="id">
       <head>

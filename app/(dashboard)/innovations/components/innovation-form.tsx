@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import {
   ArrowLeft,
+  ExternalLink,
   FileUp,
   Loader2,
   LocateFixed,
@@ -19,6 +20,13 @@ import {
 } from "@/components/form-elements";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 
 import {
@@ -28,6 +36,7 @@ import {
   innovationTypeOptions,
   initiatorOptions,
   MAX_SUPPORTING_FILE_SIZE,
+  pkpnClusterOptions,
   type InnovationEditorValues,
   innovationStageOptions,
 } from "../page.config";
@@ -49,12 +58,14 @@ export default function InnovationForm({
   values,
   submitting,
   readOnly = false,
-  submitLabel = "Simpan Inovasi",
   onChange,
   onCancel,
   onSubmit,
 }: Props) {
   const [locating, setLocating] = useState(false);
+  const selectedPkpnCluster = pkpnClusterOptions.find(
+    (option) => option.name === values.pkpnCluster,
+  );
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -226,16 +237,55 @@ export default function InnovationForm({
               />
             </Field>
             <Field label="Klaster PKPN">
-              <Input
+              <Select
                 value={values.pkpnCluster}
-                onChange={(e) => onChange("pkpnCluster", e.target.value)}
-                className={innovationInputClass}
-              />
+                onValueChange={(value) => {
+                  onChange("pkpnCluster", value ?? "");
+                  onChange("pkpnSubCluster", "");
+                }}
+              >
+                <SelectTrigger
+                  className="h-11! w-full rounded-lg border-neutral-300 bg-white px-3 text-xs text-neutral-900 dark:bg-white"
+                >
+                  <SelectValue placeholder="Pilih klaster PKPN" />
+                </SelectTrigger>
+                <SelectContent className="bg-white text-neutral-900">
+                  {pkpnClusterOptions.map((option) => (
+                    <SelectItem key={option.name} value={option.name}>
+                      {option.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
-            <Field label="Subklaster PKPN">
+            {selectedPkpnCluster && (
+              <Field label="Subklaster PKPN">
+                <Select
+                  value={values.pkpnSubCluster}
+                  onValueChange={(value) =>
+                    onChange("pkpnSubCluster", value ?? "")
+                  }
+                >
+                  <SelectTrigger
+                    className="h-11! w-full rounded-lg border-neutral-300 bg-white px-3 text-xs text-neutral-900 dark:bg-white"
+                  >
+                    <SelectValue placeholder="Pilih subklaster PKPN" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white text-neutral-900">
+                    {selectedPkpnCluster.sub.map((subCluster) => (
+                      <SelectItem key={subCluster} value={subCluster}>
+                        {subCluster}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+            <Field label="Proyek Strategis Nasional (PSN)">
               <Input
-                value={values.pkpnSubCluster}
-                onChange={(e) => onChange("pkpnSubCluster", e.target.value)}
+                required
+                value={values.psn}
+                onChange={(e) => onChange("psn", e.target.value)}
                 className={innovationInputClass}
               />
             </Field>
@@ -301,6 +351,12 @@ export default function InnovationForm({
             ].map((label, index) => {
               const inputId = `supporting-document-${index}`;
               const selectedFile = values.files[index];
+              const storedFileUrl =
+                selectedFile &&
+                "url" in selectedFile &&
+                typeof selectedFile.url === "string"
+                  ? selectedFile.url
+                  : null;
 
               return (
                 <div
@@ -312,13 +368,27 @@ export default function InnovationForm({
                       {label}
                     </p>
                     {selectedFile ? (
-                      <p
-                        title={selectedFile.name}
-                        className="mt-1 max-w-64 truncate text-[11px] font-medium text-emerald-700"
-                      >
-                        {selectedFile.name} ·{" "}
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
+                      storedFileUrl ? (
+                        <a
+                          href={storedFileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={`Lihat ${selectedFile.name}`}
+                          className="mt-1 flex max-w-72 items-center gap-1 text-[11px] font-medium text-emerald-700 underline underline-offset-2 hover:text-blue-700"
+                        >
+                          <span className="truncate">{selectedFile.name}</span>
+                          <ExternalLink className="size-3 shrink-0" />
+                          <span>· {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </a>
+                      ) : (
+                        <p
+                          title={selectedFile.name}
+                          className="mt-1 max-w-64 truncate text-[11px] font-medium text-emerald-700"
+                        >
+                          {selectedFile.name} ·{" "}
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      )
                     ) : (
                       <p className="mt-1 text-[10px] text-blue-600">
                         Dokumen PDF, maksimal 2 MB
@@ -327,7 +397,7 @@ export default function InnovationForm({
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {selectedFile && (
+                    {selectedFile && !readOnly && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -344,14 +414,14 @@ export default function InnovationForm({
                       </Button>
                     )}
 
-                    <Label
+                    {!readOnly && <Label
                       htmlFor={inputId}
                       className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-800 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
                     >
                       <FileUp className="size-4" />
                       {selectedFile ? "Ganti File" : "Pilih File"}
-                    </Label>
-                    <Input
+                    </Label>}
+                    {!readOnly && <Input
                       id={inputId}
                       type="file"
                       accept="application/pdf,.pdf"
@@ -390,7 +460,7 @@ export default function InnovationForm({
                         onChange("files", next);
                         event.currentTarget.value = "";
                       }}
-                    />
+                    />}
                   </div>
                 </div>
               );
@@ -416,13 +486,14 @@ export default function InnovationForm({
             Kembali
           </Button>
           {!readOnly && (
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="h-9 min-w-36 rounded-md bg-[#2362ee] px-5 text-xs font-semibold text-white hover:bg-blue-700"
-            >
-              {submitting ? "Menyimpan..." : submitLabel}
-            </Button>
+            <>
+              <Button type="submit" name="submissionStatus" value="DRAFT" disabled={submitting} variant="outline" className="h-9 rounded-md border-amber-500 px-4 text-xs font-semibold text-amber-600 hover:bg-amber-50">
+                Simpan Draft
+              </Button>
+              <Button type="submit" name="submissionStatus" value="SUBMITTED" disabled={submitting} className="h-9 min-w-36 rounded-md bg-[#2362ee] px-5 text-xs font-semibold text-white hover:bg-blue-700">
+                {submitting ? "Mengirim..." : "Kirim Data"}
+              </Button>
+            </>
           )}
         </div>
       </div>
