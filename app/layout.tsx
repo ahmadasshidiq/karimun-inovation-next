@@ -1,30 +1,81 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { connection } from "next/server";
 import { Providers } from "@/components/providers";
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   display: "swap",
+  variable: "--font-poppins",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const brandTitle = "Karimun Innovation";
-  const brandDescription = "Karimun Innovation";
+  const brandTitle = "Indeks Inovasi Daerah - Kabupaten Karimun";
+  const brandDescription = "Portal resmi pelaporan dan informasi Indeks Inovasi Daerah (IID) Pemerintah Kabupaten Karimun. Mendorong transformasi digital dan ekosistem inovasi Bumi Berazam.";
 
   return {
-    title: brandTitle,
+    title: {
+      default: brandTitle,
+      template: `%s | ${brandTitle}`,
+    },
     description: brandDescription,
+    keywords: ["Karimun", "Inovasi", "Indeks Inovasi Daerah", "IID", "Baperlitbang", "Pelayanan Publik"],
+    authors: [{ name: "Baperlitbang Kabupaten Karimun" }],
+    creator: "Pemerintah Kabupaten Karimun",
+    publisher: "Pemerintah Kabupaten Karimun",
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
+    },
+    metadataBase: new URL("https://baperlitbang.karimunkab.go.id"),
+    alternates: {
+      canonical: "/",
+    },
+    openGraph: {
+      title: brandTitle,
+      description: brandDescription,
+      url: "/",
+      siteName: brandTitle,
+      locale: "id_ID",
+      type: "website",
+      images: [
+        {
+          url: "/images/hero-karimun-new.jpg",
+          width: 1200,
+          height: 630,
+          alt: brandTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: brandTitle,
+      description: brandDescription,
+      images: ["/images/hero-karimun-new.jpg"],
+    },
     icons: {
-      icon: [
-        { url: "/favicon.ico", sizes: "any" },
-        { url: "/icon_jahris_colored.png", sizes: "32x32", type: "image/png" },
-      ],
-      shortcut: "/favicon.ico",
-      apple: [
-        { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-      ],
+      icon: [{ url: "/images/logo-karimun.webp", type: "image/webp" }],
+      shortcut: "/images/logo-karimun.webp",
+      apple: "/images/logo-karimun.webp",
+    },
+    viewport: {
+      width: "device-width",
+      initialScale: 1,
+      maximumScale: 5,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
   };
 }
@@ -37,15 +88,11 @@ export default async function RootLayout({
   await connection();
 
   return (
-    <html lang="id">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </head>
-      <body className={inter.className}>
+    <html lang="id" className={`${poppins.variable} scroll-smooth`}>
+      <body className={`${poppins.className} antialiased bg-white`}>
         <Providers>
-          <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-            <div className="flex-1">{children}</div>
-            
+          <div className="min-h-screen flex flex-col">
+            <main className="flex-1">{children}</main>
           </div>
         </Providers>
       </body>
