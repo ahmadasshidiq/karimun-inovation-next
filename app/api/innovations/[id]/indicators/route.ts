@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { innovationOwnerScope } from "@/lib/innovation-access";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id } = await context.params;
   const data = await prisma.innovationIndicatorAssessment.findMany({
-    where: { innovationId: id },
+    where: {
+      innovationId: id,
+      innovation: {
+        deletedAt: null,
+        ...innovationOwnerScope(user),
+      },
+    },
     include: { documents: { orderBy: { createdAt: "asc" } } },
     orderBy: { indicatorId: "asc" },
   });
@@ -40,7 +48,8 @@ export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser()))
+  const user = await getAuthenticatedUser();
+  if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id } = await context.params;
@@ -53,7 +62,11 @@ export async function PUT(
     return NextResponse.json({ message: "Parameter indikator tidak valid." }, { status: 400 });
 
   const innovation = await prisma.innovation.findFirst({
-    where: { id, deletedAt: null },
+    where: {
+      id,
+      deletedAt: null,
+      ...innovationOwnerScope(user),
+    },
     select: { id: true },
   });
   if (!innovation)

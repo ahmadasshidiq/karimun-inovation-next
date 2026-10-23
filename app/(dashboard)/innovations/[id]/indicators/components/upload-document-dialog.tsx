@@ -23,6 +23,26 @@ type Props = {
   onSave: (document: IndicatorDocument) => void;
 };
 
+const MIME_BY_EXTENSION: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  mp4: "video/mp4",
+};
+
+const getAllowedExtensions = (fileTypes?: string) =>
+  (fileTypes || "")
+    .toLowerCase()
+    .split("/")
+    .map((value) => value.trim())
+    .filter((value) => value in MIME_BY_EXTENSION);
+
+const getAcceptValue = (fileTypes?: string) =>
+  getAllowedExtensions(fileTypes)
+    .flatMap((extension) => [`.${extension}`, MIME_BY_EXTENSION[extension]])
+    .join(",");
+
 const emptyDocument: IndicatorDocument = {
   documentNumber: "",
   documentDate: "",
@@ -132,9 +152,20 @@ export default function UploadDocumentDialog({
                 ref={inputRef}
                 type="file"
                 className="sr-only"
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept={getAcceptValue(indicator?.fileTypes)}
                 onChange={(event) => {
                   const selectedFile = event.currentTarget.files?.[0];
+                  if (!selectedFile) return;
+                  const allowedExtensions = getAllowedExtensions(indicator?.fileTypes);
+                  const extension = selectedFile.name.toLowerCase().split(".").pop() || "";
+                  const expectedTypes = new Set(
+                    allowedExtensions.map((item) => MIME_BY_EXTENSION[item]),
+                  );
+                  if (!allowedExtensions.includes(extension) || !expectedTypes.has(selectedFile.type)) {
+                    setForm((current) => ({ ...current, file: undefined }));
+                    event.currentTarget.value = "";
+                    return;
+                  }
                   setForm((current) => ({
                     ...current,
                     file: selectedFile,

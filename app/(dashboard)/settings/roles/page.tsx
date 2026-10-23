@@ -7,21 +7,25 @@ import DynamicPage from "@/components/dynamic-page";
 import { toast } from "@/components/ui/toast";
 import { parseApiResponse } from "@/lib/helper/response-api";
 
-import RoleForm from "./components/role-form";
+import FormData from "./components/form-data";
 import {
   columnFormats,
+  filterPanel,
   headerToolbar,
+  initialFilters,
   ITEMS_PER_PAGE,
   renderActions,
   type RoleDto,
+  type RoleFilters,
   type RoleFormValues,
   type RoleListResponse,
 } from "./page.config";
 
 export default function RolesPage() {
   const [data, setData] = useState<RoleDto[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [draftFilters, setDraftFilters] =
+    useState<RoleFilters>(initialFilters);
+  const [filters, setFilters] = useState<RoleFilters>(initialFilters);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,11 +33,13 @@ export default function RolesPage() {
   const [showModal, setShowModal] = useState(false);
   const [detailItem, setDetailItem] = useState<RoleDto>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showFilterPanel, setShowFilterPanel] = useState(true);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)),
     [total],
   );
+  const activeFilterCount = filters.search ? 1 : 0;
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -44,9 +50,7 @@ export default function RolesPage() {
         limit: String(ITEMS_PER_PAGE),
       });
 
-      if (debouncedSearchTerm) {
-        params.set("search", debouncedSearchTerm);
-      }
+      if (filters.search) params.set("search", filters.search);
 
       const response = await fetch(`/api/roles?${params.toString()}`, {
         cache: "no-store",
@@ -67,19 +71,10 @@ export default function RolesPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchTerm]);
+  }, [currentPage, filters]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm.trim());
-      setCurrentPage(1);
-    }, 500);
-
-    return () => window.clearTimeout(timeout);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    // Fetch berjalan setelah dependency pagination atau pencarian berubah.
+    // Fetch berjalan setelah pagination atau filter yang diterapkan berubah.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchRoles();
   }, [fetchRoles]);
@@ -177,14 +172,45 @@ export default function RolesPage() {
     [currentPage, data.length, fetchRoles],
   );
 
+  const setFilter = useCallback(
+    (key: keyof RoleFilters, value: string) => {
+      setDraftFilters((current) => ({ ...current, [key]: value }));
+    },
+    [],
+  );
+
+  const applyFilters = useCallback(() => {
+    setFilters({ ...draftFilters, search: draftFilters.search.trim() });
+    setCurrentPage(1);
+  }, [draftFilters]);
+
+  const clearFilters = useCallback(() => {
+    setDraftFilters(initialFilters);
+    setFilters(initialFilters);
+    setCurrentPage(1);
+  }, []);
+
   const toolbar = useMemo(
     () =>
       headerToolbar({
         onAdd: handleOpenAdd,
-        searchTerm,
-        setSearchTerm,
+        onToggleFilter: () => setShowFilterPanel((current) => !current),
+        activeFilterCount,
       }),
-    [handleOpenAdd, searchTerm],
+    [activeFilterCount, handleOpenAdd],
+  );
+
+  const filtersUi = useMemo(
+    () =>
+      showFilterPanel
+        ? filterPanel({
+            filters: draftFilters,
+            setFilter,
+            applyFilters,
+            clearFilters,
+          })
+        : null,
+    [applyFilters, clearFilters, draftFilters, setFilter, showFilterPanel],
   );
 
   return (
@@ -196,40 +222,41 @@ export default function RolesPage() {
             description="Kelola role dan hak akses pengguna."
           />
 
-          <div className="mt-5 [&>div]:!bg-white [&>div]:!text-slate-700 [&_table]:!text-slate-700 [&_thead]:!border-slate-200 [&_tr]:!border-slate-200 [&_th]:!border-slate-100 [&_th]:!text-slate-700 [&_td]:!border-slate-200 [&_td]:!text-slate-700 [&_p]:!text-slate-600 [&_p_span]:!text-slate-900">
-            <DynamicPage
-              className="border! border-neutral-200! shadow-none! ring-0! backdrop-blur-none! dark:bg-white"
-              toolbar={toolbar}
-              columns={columnFormats}
-              items={data}
-              total={total}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              loading={loading}
-              emptyMessage="Belum ada data role."
-              onPageChange={setCurrentPage}
-              renderActions={(row) =>
-                renderActions({
-                  row,
-                  onEdit: handleOpenEdit,
-                  onDelete: handleDelete,
-                  deleteId,
-                  setDeleteId,
-                })
-              }
-            />
-          </div>
+          <DynamicPage
+            className="mt-5"
+            toolbar={toolbar}
+            filterPanel={filtersUi}
+            columns={columnFormats}
+            items={data}
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            loading={loading}
+            emptyMessage="Belum ada data role."
+            onPageChange={setCurrentPage}
+            getRowId={(row) => row.id}
+            renderActions={(row) =>
+              renderActions({
+                row,
+                onEdit: handleOpenEdit,
+                onDelete: handleDelete,
+                deleteId,
+                setDeleteId,
+              })
+            }
+          />
         </div>
       </main>
 
-      <RoleForm
-        key={detailItem?.id ?? "new-role"}
-        open={showModal}
-        initialData={detailItem}
-        saving={saving}
-        onClose={handleCloseModal}
-        onSubmit={handleSave}
-      />
+      {showModal ? (
+        <FormData
+          open
+          initialData={detailItem}
+          saving={saving}
+          onClose={handleCloseModal}
+          onSubmit={handleSave}
+        />
+      ) : null}
     </AppSidebarLayout>
   );
 }

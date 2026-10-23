@@ -5,9 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
 import DynamicPage from "@/components/dynamic-page";
 import { toast } from "@/components/ui/toast";
+import { downloadCsv } from "@/lib/helper/csv";
 import { parseApiResponse } from "@/lib/helper/response-api";
 
-import AccountForm from "./components/account-form";
+import FormData from "./components/form-data";
 import {
   columnFormats,
   filterPanel,
@@ -26,8 +27,8 @@ export default function AccountPage() {
   const [data, setData] = useState<UserDto[]>([]);
   const [roles, setRoles] = useState<UserOptionDto[]>([]);
   const [institutions, setInstitutions] = useState<UserOptionDto[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [draftFilters, setDraftFilters] =
+    useState<UserFilters>(initialFilters);
   const [filters, setFilters] = useState<UserFilters>(initialFilters);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,9 +45,9 @@ export default function AccountPage() {
   );
   const activeFilterCount = useMemo(
     () =>
-      Object.values(filters).filter((value) => value !== "all").length +
-      (searchTerm.trim() ? 1 : 0),
-    [filters, searchTerm],
+      Object.values(filters).filter((value) => value && value !== "all")
+        .length,
+    [filters],
   );
 
   const fetchUsers = useCallback(async () => {
@@ -56,9 +57,9 @@ export default function AccountPage() {
         page: String(currentPage),
         limit: String(ITEMS_PER_PAGE),
       });
-      if (debouncedSearchTerm) params.set("search", debouncedSearchTerm);
-      if (filters.status !== "all") params.set("status", filters.status);
-      if (filters.roleId !== "all") params.set("roleId", filters.roleId);
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== "all") params.set(key, value);
+      });
 
       const response = await fetch(`/api/users?${params.toString()}`, {
         cache: "no-store",
@@ -93,24 +94,10 @@ export default function AccountPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchTerm, filters]);
+  }, [currentPage, filters]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm.trim());
-      setCurrentPage(1);
-    }, 500);
-    return () => window.clearTimeout(timeout);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    // Filter selalu kembali ke halaman pertama.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentPage(1);
-  }, [filters]);
-
-  useEffect(() => {
-    // Fetch berjalan setelah pagination, pencarian, atau filter berubah.
+    // Fetch berjalan setelah pagination atau filter yang diterapkan berubah.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchUsers();
   }, [fetchUsers]);
@@ -196,44 +183,34 @@ export default function AccountPage() {
     [currentPage, data.length, fetchUsers],
   );
 
-  const clearFilters = useCallback(() => {
-    setSearchTerm("");
-    setFilters(initialFilters);
+  const setFilter = useCallback((key: keyof UserFilters, value: string) => {
+    setDraftFilters((current) => ({ ...current, [key]: value }));
   }, []);
 
-  const setFilter = useCallback(
-    (key: keyof UserFilters, value: string) => {
-      setFilters((current) => ({ ...current, [key]: value }));
-      setCurrentPage(1);
-    },
-    [],
-  );
+  const applyFilters = useCallback(() => {
+    setFilters({ ...draftFilters, search: draftFilters.search.trim() });
+    setCurrentPage(1);
+  }, [draftFilters]);
+
+  const clearFilters = useCallback(() => {
+    setDraftFilters(initialFilters);
+    setFilters(initialFilters);
+    setCurrentPage(1);
+  }, []);
 
   const handleExport = useCallback(() => {
-    const escapeCell = (value: unknown) =>
-      `"${String(value ?? "").replaceAll('"', '""')}"`;
-    const rows = data.map((user) => [
-      user.fullname,
-      user.username,
-      user.email || "",
-      user.role?.name || "",
-      user.institution?.name || "",
-      user.status === "ACTIVE" ? "Aktif" : "Tidak Aktif",
-    ]);
-    const csv = [
+    downloadCsv(
+      "data-akun.csv",
       ["Nama Lengkap", "Username", "Email", "Role", "Instansi", "Status"],
-      ...rows,
-    ]
-      .map((row) => row.map(escapeCell).join(","))
-      .join("\n");
-    const url = URL.createObjectURL(
-      new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }),
+      data.map((user) => [
+        user.fullname,
+        user.username,
+        user.email,
+        user.role?.name,
+        user.institution?.name,
+        user.status === "ACTIVE" ? "Aktif" : "Tidak Aktif",
+      ]),
     );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "data-akun.csv";
-    link.click();
-    URL.revokeObjectURL(url);
   }, [data]);
 
   const toolbar = useMemo(
@@ -241,7 +218,7 @@ export default function AccountPage() {
       headerToolbar({
         onAdd: handleOpenAdd,
         onExport: handleExport,
-        setShowFilter: setShowFilterPanel,
+        onToggleFilter: () => setShowFilterPanel((current) => !current),
         activeFilterCount,
       }),
     [activeFilterCount, handleExport, handleOpenAdd],
@@ -251,15 +228,21 @@ export default function AccountPage() {
     () =>
       showFilterPanel
         ? filterPanel({
-            searchTerm,
-            setSearchTerm,
-            filters,
+            filters: draftFilters,
             setFilter,
-            roles,
+            applyFilters,
             clearFilters,
+            roles,
           })
         : null,
-    [clearFilters, filters, roles, searchTerm, setFilter, showFilterPanel],
+    [
+      applyFilters,
+      clearFilters,
+      draftFilters,
+      roles,
+      setFilter,
+      showFilterPanel,
+    ],
   );
 
   return (
@@ -271,44 +254,43 @@ export default function AccountPage() {
             description="Kelola akun pengguna, role, instansi, dan status akses."
           />
 
-          <div className="mt-5 [&>div]:!bg-white [&>div]:!text-slate-700 [&_table]:!text-slate-700 [&_thead]:!border-slate-200 [&_tr]:!border-slate-200 [&_th]:!border-slate-100 [&_th]:!text-slate-700 [&_td]:!border-slate-200 [&_td]:!text-slate-700 [&_p]:!text-slate-600 [&_p_span]:!text-slate-900">
-            <DynamicPage
-              className="border! border-neutral-200! shadow-none! ring-0! backdrop-blur-none! dark:bg-white"
-              toolbar={toolbar}
-              filterPanel={filtersUi}
-              columns={columnFormats}
-              items={data}
-              total={total}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              loading={loading}
-              emptyMessage="Belum ada data akun."
-              onPageChange={setCurrentPage}
-              getRowId={(row) => row.id}
-              renderActions={(row) =>
-                renderActions({
-                  row,
-                  onEdit: handleOpenEdit,
-                  onDelete: handleDelete,
-                  deleteId,
-                  setDeleteId,
-                })
-              }
-            />
-          </div>
+          <DynamicPage
+            className="mt-5"
+            toolbar={toolbar}
+            filterPanel={filtersUi}
+            columns={columnFormats}
+            items={data}
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            loading={loading}
+            emptyMessage="Belum ada data akun."
+            onPageChange={setCurrentPage}
+            getRowId={(row) => row.id}
+            renderActions={(row) =>
+              renderActions({
+                row,
+                onEdit: handleOpenEdit,
+                onDelete: handleDelete,
+                deleteId,
+                setDeleteId,
+              })
+            }
+          />
         </div>
       </main>
 
-      <AccountForm
-        key={detailItem?.id ?? "new-account"}
-        open={showModal}
-        initialData={detailItem}
-        roles={roles}
-        institutions={institutions}
-        saving={saving}
-        onClose={handleCloseModal}
-        onSubmit={handleSave}
-      />
+      {showModal ? (
+        <FormData
+          open
+          initialData={detailItem}
+          roles={roles}
+          institutions={institutions}
+          saving={saving}
+          onClose={handleCloseModal}
+          onSubmit={handleSave}
+        />
+      ) : null}
     </AppSidebarLayout>
   );
 }

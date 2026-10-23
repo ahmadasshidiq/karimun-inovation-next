@@ -1,6 +1,8 @@
 import { config } from "dotenv";
 
+// .env.local diprioritaskan; .env tetap dibaca sebagai cadangan.
 config({ path: ".env.local" });
+config();
 
 import { randomBytes, scryptSync } from "node:crypto";
 

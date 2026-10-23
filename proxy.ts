@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 const protectedPrefixes = [
   "/dashboard",
   "/innovations",
+  "/innovation-contracts",
+  "/innovation-competitions",
   "/lomba-inovasi",
   "/laporan-diklat",
   "/pengaturan",

@@ -14,12 +14,15 @@ export default function InnovationDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; category?: string }>;
 }) {
   const { id } = use(params);
-  const { mode } = use(searchParams);
+  const { mode, category } = use(searchParams);
   const router = useRouter();
   const editable = mode === "edit";
+  const returnUrl = category
+    ? `/innovations?category=${encodeURIComponent(category)}`
+    : "/innovations";
   const [values, setValues] = useState(() => getInitialDetail(id));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,13 +76,13 @@ export default function InnovationDetailPage({
     ) => setValues((current) => ({ ...current, [field]: value })),
     [],
   );
-  const save = async () => {
+  const save = async (submissionStatus: "DRAFT" | "SUBMITTED") => {
     try {
       setSaving(true);
       const response = await fetch(`/api/innovations/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, submissionStatus }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok)
@@ -89,7 +92,7 @@ export default function InnovationDetailPage({
         description: "Perubahan inovasi berhasil disimpan.",
         type: "success",
       });
-      router.push("/innovations");
+      router.push(returnUrl);
       router.refresh();
     } catch (error) {
       toast.add({
@@ -126,10 +129,15 @@ export default function InnovationDetailPage({
               readOnly={!editable}
               submitLabel="Simpan Perubahan"
               onChange={onChange}
-              onCancel={() => router.push("/innovations")}
+              onCancel={() => router.push(returnUrl)}
               onSubmit={(event) => {
                 event.preventDefault();
-                void save();
+                // Status mengikuti tombol yang diklik: Simpan Draft atau Kirim Data.
+                const submitter = (event.nativeEvent as SubmitEvent)
+                  .submitter as HTMLButtonElement | null;
+                void save(
+                  submitter?.value === "SUBMITTED" ? "SUBMITTED" : "DRAFT",
+                );
               }}
             />
           )}

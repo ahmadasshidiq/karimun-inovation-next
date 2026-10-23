@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -13,7 +13,7 @@ import {
 } from "react";
 import {
   ChevronDown,
-  FileText,
+  FilePenLine,
   Layers3,
   LogOut,
   Settings,
@@ -59,9 +59,7 @@ export type SessionUser = {
   email: string | null;
   fullname: string;
   role: string;
-  permission:
-    | { all?: boolean }
-    | Array<{ model: string; actions: string[] }>;
+  permission: { all?: boolean } | Array<{ model: string; actions: string[] }>;
   institution: string;
   nomenclature: string;
 };
@@ -105,10 +103,41 @@ const menuItems: SidebarItem[] = [
     access: { model: "dashboard", action: "view" },
   },
   {
-    title: "Inovasi Perangkat Daerah",
-    href: "/innovations",
+    title: "Inovasi Daerah",
     icon: Sparkles,
-    access: { model: "innovations", action: "get-all" },
+    children: [
+      {
+        title: "Perangkat Daerah",
+        href: "/innovations?category=perangkat-daerah",
+        access: { model: "innovations", action: "get-all" },
+      },
+      {
+        title: "Kecamatan",
+        href: "/innovations?category=kecamatan",
+        access: { model: "innovations", action: "get-all" },
+      },
+      {
+        title: "Kelurahan",
+        href: "/innovations?category=kelurahan",
+        access: { model: "innovations", action: "get-all" },
+      },
+      {
+        title: "UPT Puskesmas",
+        href: "/innovations?category=upt-puskesmas",
+        access: { model: "innovations", action: "get-all" },
+      },
+      {
+        title: "Satuan Pendidikan",
+        href: "/innovations?category=satuan-pendidikan",
+        access: { model: "innovations", action: "get-all" },
+      },
+    ],
+  },
+  {
+    title: "Perjanjian Kinerja",
+    icon: FilePenLine,
+    href: "/innovation-contracts",
+    access: { model: "innovation-contracts", action: "get-all" },
   },
   {
     title: "Lomba Inovasi Perangkat Daerah",
@@ -116,29 +145,18 @@ const menuItems: SidebarItem[] = [
     children: [
       {
         title: "Inovasi OPD",
-        href: "/lomba-inovasi/inovasi-opd",
+        href: "/innovation-competitions/opd-innovation",
         access: { model: "innovation-competitions", action: "get-all" },
       },
       {
         title: "Papan Peringkat",
-        href: "/lomba-inovasi/papan-peringkat",
+        href: "/innovation-competitions/leaderboard",
         access: { model: "innovation-competitions", action: "get-all" },
       },
-    ],
-  },
-  {
-    title: "Laporan Diklat",
-    icon: FileText,
-    children: [
       {
-        title: "Data Laporan Diklat",
-        href: "/laporan-diklat",
-        access: { model: "training-reports", action: "get-all" },
-      },
-      {
-        title: "Konfigurasi Akun Diklat",
-        href: "/laporan-diklat/konfigurasi-akun",
-        access: { model: "training-reports", action: "update" },
+        title: "Periode Lomba",
+        href: "/innovation-competitions/periods",
+        access: { model: "competition-periods", action: "get-all" },
       },
     ],
   },
@@ -150,6 +168,16 @@ const menuItems: SidebarItem[] = [
         title: "Role",
         href: "/settings/roles",
         access: { model: "roles", action: "get-all" },
+      },
+      {
+        title: "Nomenklatur",
+        href: "/settings/nomenclatures",
+        access: { model: "nomenclatures", action: "get-all" },
+      },
+      {
+        title: "Instansi",
+        href: "/settings/institutions",
+        access: { model: "institutions", action: "get-all" },
       },
       {
         title: "Akun",
@@ -280,6 +308,7 @@ type AppSidebarProps = {
 export function AppSidebar({ onLogout }: AppSidebarProps) {
   const { user, logout } = useSessionUser();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isMobile, setOpenMobile } = useSidebar();
   const [openMenus, setOpenMenus] = useState<string[]>([
     "Lomba Inovasi Perangkat Daerah",
@@ -297,6 +326,20 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
 
   const handleNavigation = () => {
     if (isMobile) setOpenMobile(false);
+  };
+
+  const isActiveHref = (href: string) => {
+    const url = new URL(href, "http://localhost");
+    const category = url.searchParams.get("category");
+
+    if (category !== null) {
+      return (
+        pathname.startsWith("/innovations") &&
+        searchParams.get("category") === category
+      );
+    }
+
+    return pathname === url.pathname;
   };
 
   const handleLogout = () => {
@@ -355,7 +398,7 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
               {accessibleMenuItems.map((item) => {
                 const Icon = item.icon;
                 const hasActiveChild = item.children?.some(
-                  (child) => pathname === child.href,
+                  (child) => isActiveHref(child.href),
                 );
                 const isOpen = !openMenus.includes(item.title);
 
@@ -396,7 +439,7 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
                                     onClick={handleNavigation}
                                   />
                                 }
-                                isActive={pathname === child.href}
+                                isActive={isActiveHref(child.href)}
                                 className="h-8 px-3 text-[13px] text-neutral-500 data-active:bg-amber-50 data-active:text-[#d98700] hover:bg-neutral-50"
                               >
                                 <span className="text-[13px]">
@@ -421,7 +464,7 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
                         />
                       }
                       tooltip={item.title}
-                      isActive={pathname === item.href}
+                      isActive={item.href ? isActiveHref(item.href) : false}
                       className="h-10 gap-3 px-3 text-[13px] font-medium text-neutral-800 data-active:bg-[#ffb437] data-active:text-white hover:bg-amber-50 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:[&>span]:hidden"
                     >
                       <Icon className="!size-4.5" />
