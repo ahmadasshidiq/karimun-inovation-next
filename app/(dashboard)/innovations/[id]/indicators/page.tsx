@@ -7,11 +7,19 @@ import { ArrowLeft } from "lucide-react";
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { parseApiError } from "@/lib/helper/response-api";
+import { parseApiError, parseApiResponse } from "@/lib/helper/response-api";
 
 import IndicatorSummary from "./components/indicator-summary";
 import IndicatorTable from "./components/indicator-table";
-import { indicators, type IndicatorDocument } from "./page.config";
+import ReviewIndicatorDialog from "./components/review-indicator-dialog";
+import {
+  indicators,
+  type IndicatorDocument,
+  type IndicatorDto,
+  type IndicatorListResponse,
+  type IndicatorReview,
+  type IndicatorReviewValues,
+} from "./page.config";
 
 export default function InnovationIndicatorsPage({
   params,
@@ -23,20 +31,34 @@ export default function InnovationIndicatorsPage({
   const [stage, setStage] = useState("Inisiatif");
   const [selections, setSelections] = useState<Record<number, string>>({});
   const [documents, setDocuments] = useState<Record<number, IndicatorDocument[]>>({});
+  const [reviews, setReviews] = useState<Record<number, IndicatorReview>>({});
+  const [canReview, setCanReview] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState<{
+    indicator: IndicatorDto;
+    action: IndicatorReviewValues["action"];
+  } | null>(null);
+  const [savingReview, setSavingReview] = useState(false);
 
   const fetchIndicators = useCallback(async () => {
-    const response = await fetch(`/api/innovations/${id}/indicators`);
-    if (!response.ok)
-      throw new Error(await parseApiError(response, "Gagal memuat indikator."));
-    const result = await response.json();
+    const response = await fetch(`/api/innovations/${id}/indicators`, {
+      cache: "no-store",
+    });
+    const payload = await parseApiResponse<IndicatorListResponse>(
+      response,
+      "Gagal memuat indikator.",
+    );
     const nextSelections: Record<number, string> = {};
     const nextDocuments: Record<number, IndicatorDocument[]> = {};
-    for (const assessment of result.data || []) {
+    const nextReviews: Record<number, IndicatorReview> = {};
+    for (const assessment of payload.data || []) {
       nextSelections[assessment.indicatorId] = assessment.parameter;
       nextDocuments[assessment.indicatorId] = assessment.documents || [];
+      nextReviews[assessment.indicatorId] = assessment.review;
     }
     setSelections(nextSelections);
     setDocuments(nextDocuments);
+    setReviews(nextReviews);
+    setCanReview(Boolean(payload.canReview));
   }, [id]);
 
   useEffect(() => {
@@ -95,6 +117,7 @@ export default function InnovationIndicatorsPage({
       });
       if (!response.ok)
         throw new Error(await parseApiError(response, "Gagal menyimpan parameter."));
+      await fetchIndicators();
     } catch (error) {
       await fetchIndicators();
       toast.add({
@@ -150,10 +173,64 @@ export default function InnovationIndicatorsPage({
       });
     }
   }, [fetchIndicators, id]);
+  const handleOpenReview = useCallback(
+    (indicator: IndicatorDto, action: IndicatorReviewValues["action"]) => {
+      setReviewTarget({ indicator, action });
+    },
+    [],
+  );
+
+  const handleCloseReview = useCallback(() => {
+    if (savingReview) return;
+    setReviewTarget(null);
+  }, [savingReview]);
+
+  const handleReview = useCallback(
+    async (values: IndicatorReviewValues) => {
+      if (!reviewTarget) return;
+      try {
+        setSavingReview(true);
+        const response = await fetch(
+          `/api/innovations/${id}/indicators/${reviewTarget.indicator.id}/review`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values),
+          },
+        );
+        await parseApiResponse(response, "Gagal memverifikasi indikator");
+        toast.add({
+          type: "success",
+          title:
+            values.action === "approve"
+              ? "Indikator berhasil disetujui"
+              : "Indikator berhasil ditolak",
+        });
+        setReviewTarget(null);
+        await fetchIndicators();
+      } catch (error) {
+        toast.add({
+          type: "error",
+          title:
+            error instanceof Error
+              ? error.message
+              : "Gagal memverifikasi indikator",
+        });
+      } finally {
+        setSavingReview(false);
+      }
+    },
+    [fetchIndicators, id, reviewTarget],
+  );
+
   const completed = Object.keys(selections).length;
+  // Bobot indikator yang ditolak verifikator tidak dihitung.
   const score = indicators.reduce(
     (total, indicator) =>
-      total + (selections[indicator.id] ? indicator.weight : 0),
+      total +
+      (selections[indicator.id] && reviews[indicator.id]?.status !== "REJECTED"
+        ? indicator.weight
+        : 0),
     0,
   );
 
@@ -185,11 +262,19 @@ export default function InnovationIndicatorsPage({
             />
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
+            <p className="mb-4 text-xs text-slate-600">
+              <span className="font-semibold text-red-500">*</span> Indikator
+              wajib. Pilih parameter dan unggah dokumen pendukungnya agar
+              inovasi dapat dikirim ke Perjanjian Kinerja atau Lomba Inovasi.
+            </p>
             <IndicatorTable
               innovationId={id}
               items={indicators}
               selections={selections}
               documents={documents}
+              reviews={reviews}
+              canReview={canReview}
+              onReview={handleOpenReview}
               onSelect={onSelect}
               onDocument={onDocument}
               onDeleteDocument={onDeleteDocument}
@@ -197,6 +282,22 @@ export default function InnovationIndicatorsPage({
           </div>
         </div>
       </main>
+
+      {reviewTarget ? (
+        <ReviewIndicatorDialog
+          open
+          indicator={reviewTarget.indicator}
+          action={reviewTarget.action}
+          initialNote={
+            reviewTarget.action === "reject"
+              ? reviews[reviewTarget.indicator.id]?.note
+              : ""
+          }
+          saving={savingReview}
+          onClose={handleCloseReview}
+          onSubmit={handleReview}
+        />
+      ) : null}
     </AppSidebarLayout>
   );
 }

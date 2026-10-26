@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { innovationOwnerScope } from "@/lib/innovation-access";
+import {
+  canReviewIndicators,
+  getAssessmentScore,
+  resetIndicatorReview,
+} from "@/lib/innovation-indicator";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -13,23 +18,35 @@ export async function GET(
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id } = await context.params;
+  const canReview = canReviewIndicators(user.role.permission);
   const data = await prisma.innovationIndicatorAssessment.findMany({
     where: {
       innovationId: id,
       innovation: {
         deletedAt: null,
-        ...innovationOwnerScope(user),
+        ...(canReview ? {} : innovationOwnerScope(user)),
       },
     },
-    include: { documents: { orderBy: { createdAt: "asc" } } },
+    include: {
+      documents: { orderBy: { createdAt: "asc" } },
+      reviewedBy: { select: { fullname: true } },
+    },
     orderBy: { indicatorId: "asc" },
   });
 
   return NextResponse.json({
+    canReview,
     data: data.map((item) => ({
       indicatorId: item.indicatorId,
       parameter: item.parameter,
-      score: Number(item.score),
+      score: getAssessmentScore(item),
+      weight: Number(item.score),
+      review: {
+        status: item.reviewStatus,
+        note: item.reviewNote || "",
+        reviewedBy: item.reviewedBy?.fullname || "",
+        reviewedAt: item.reviewedAt?.toISOString() || "",
+      },
       documents: item.documents.map((document) => ({
         id: document.id,
         documentNumber: document.documentNumber || "",
@@ -72,6 +89,13 @@ export async function PUT(
   if (!innovation)
     return NextResponse.json({ message: "Inovasi tidak ditemukan." }, { status: 404 });
 
+  const parameter = payload.parameter.trim();
+  const current = await prisma.innovationIndicatorAssessment.findUnique({
+    where: {
+      innovationId_indicatorId: { innovationId: id, indicatorId: payload.indicatorId },
+    },
+    select: { parameter: true },
+  });
   const assessment = await prisma.innovationIndicatorAssessment.upsert({
     where: {
       innovationId_indicatorId: { innovationId: id, indicatorId: payload.indicatorId },
@@ -79,12 +103,13 @@ export async function PUT(
     create: {
       innovationId: id,
       indicatorId: payload.indicatorId,
-      parameter: payload.parameter.trim(),
+      parameter,
       score: Number(payload.score) || 0,
     },
     update: {
-      parameter: payload.parameter.trim(),
+      parameter,
       score: Number(payload.score) || 0,
+      ...(current?.parameter !== parameter ? resetIndicatorReview : {}),
     },
   });
 

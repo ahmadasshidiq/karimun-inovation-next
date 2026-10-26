@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { innovationOwnerScope } from "@/lib/innovation-access";
 import {
+  getAssessmentScore,
   getMissingMandatoryIndicators,
   MANDATORY_INDICATOR_IDS,
   VIDEO_INDICATOR_ID,
@@ -111,6 +112,7 @@ export async function GET(request: NextRequest) {
             select: {
               indicatorId: true,
               score: true,
+              reviewStatus: true,
               _count: { select: { documents: true } },
               documents: {
                 where: {
@@ -189,6 +191,7 @@ export async function GET(request: NextRequest) {
           item.indicatorAssessments.map((assessment) => ({
             indicatorId: assessment.indicatorId,
             documentCount: assessment._count.documents,
+            reviewStatus: assessment.reviewStatus,
           })),
         ).length,
       contractSubmitted: item.submissions.some(
@@ -201,7 +204,7 @@ export async function GET(request: NextRequest) {
       ),
       skor: ["PENDING_REVIEW", "APPROVED"].includes(item.approvalStatus)
         ? item.indicatorAssessments.reduce(
-            (total, assessment) => total + Number(assessment.score),
+            (total, assessment) => total + getAssessmentScore(assessment),
             0,
           )
         : 0,
@@ -219,7 +222,7 @@ export async function GET(request: NextRequest) {
         innovation.indicatorAssessments.reduce(
           (subtotal, assessment) =>
             group.indicators.includes(assessment.indicatorId)
-              ? subtotal + Number(assessment.score)
+              ? subtotal + getAssessmentScore(assessment)
               : subtotal,
           0,
         ),

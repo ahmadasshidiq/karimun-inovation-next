@@ -57,7 +57,11 @@ export async function POST(
       id: true,
       indicatorAssessments: {
         where: { indicatorId: { in: MANDATORY_INDICATOR_IDS } },
-        select: { indicatorId: true, _count: { select: { documents: true } } },
+        select: {
+          indicatorId: true,
+          reviewStatus: true,
+          _count: { select: { documents: true } },
+        },
       },
     },
   });
@@ -71,6 +75,7 @@ export async function POST(
     innovation.indicatorAssessments.map((assessment) => ({
       indicatorId: assessment.indicatorId,
       documentCount: assessment._count.documents,
+      reviewStatus: assessment.reviewStatus,
     })),
   );
   if (missingIndicators.length > 0) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { innovationOwnerScope } from "@/lib/innovation-access";
+import { getAssessmentScore } from "@/lib/innovation-indicator";
 import {
   SUBMISSION_PERMISSION_MODELS,
   SUBMISSION_STATUSES,
@@ -46,7 +47,9 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         createdBy: { select: { institution: { select: { name: true } } } },
-        indicatorAssessments: { select: { score: true } },
+        indicatorAssessments: {
+          select: { score: true, reviewStatus: true },
+        },
         submissions: {
           where: { status: { not: SUBMISSION_STATUSES.CANCELLED } },
           include: { period: { select: { name: true } } },
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
     description: record.description,
     purpose: record.purpose,
     score: record.indicatorAssessments.reduce(
-      (sum, assessment) => sum + Number(assessment.score),
+      (sum, assessment) => sum + getAssessmentScore(assessment),
       0,
     ),
     contract: toResult(
