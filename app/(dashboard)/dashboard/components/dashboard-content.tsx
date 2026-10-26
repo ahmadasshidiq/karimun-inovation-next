@@ -13,14 +13,20 @@ import {
 } from "recharts";
 
 import {
+  assessedColumnFormats,
   getStatistics,
+  renderAssessedActions,
   type AnnouncementItem,
+  type AssessedInnovationDto,
+  type InnovationIndexPoint,
+  type InnovationYearPoint,
   type DashboardAssessmentItem,
   type CountdownValue,
   type DashboardMapPoint,
   type DashboardSummary,
 } from "../page.config";
 import { AppPageHeader, useSessionUser } from "@/components/app-sidebar";
+import DynamicPage from "@/components/dynamic-page";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +34,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+import { InnovationIndexChart, InnovationYearChart } from "./innovation-charts";
 
 const InnovationMap = dynamic(() => import("./innovation-map"), {
   ssr: false,
@@ -45,6 +53,17 @@ type DashboardContentProps = {
   assessmentData: DashboardAssessmentItem[];
   announcements: AnnouncementItem[];
   countdownActive: boolean;
+  innovationIndex: InnovationIndexPoint[];
+  innovationsPerYear: InnovationYearPoint[];
+  assessed: {
+    items: AssessedInnovationDto[];
+    total: number;
+    currentPage: number;
+    totalPages: number;
+    loading: boolean;
+    onPageChange: (page: number) => void;
+    onPreview: (innovation: AssessedInnovationDto) => void;
+  };
 };
 
 function CountdownBanner({
@@ -295,6 +314,9 @@ export default function DashboardContent({
   assessmentData,
   announcements,
   countdownActive,
+  innovationIndex,
+  innovationsPerYear,
+  assessed,
 }: DashboardContentProps) {
   const { user } = useSessionUser();
 
@@ -327,6 +349,38 @@ export default function DashboardContent({
           <AssessmentPanel data={assessmentData} />
         </aside>
       </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <InnovationIndexChart data={innovationIndex} />
+        <InnovationYearChart data={innovationsPerYear} />
+      </div>
+
+      <DynamicPage
+        className="mt-4 rounded-xl p-4"
+        toolbar={
+          <div>
+            <h2 className="text-sm font-semibold text-neutral-950">
+              Inovasi yang Sudah Dinilai
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Inovasi yang pernah diajukan ke Perjanjian Kinerja atau Lomba
+              Inovasi beserta hasil penilaiannya.
+            </p>
+          </div>
+        }
+        columns={assessedColumnFormats}
+        items={assessed.items}
+        total={assessed.total}
+        currentPage={assessed.currentPage}
+        totalPages={assessed.totalPages}
+        loading={assessed.loading}
+        emptyMessage="Belum ada inovasi yang dinilai."
+        onPageChange={assessed.onPageChange}
+        getRowId={(row) => row.id}
+        renderActions={(row) =>
+          renderAssessedActions({ row, onPreview: assessed.onPreview })
+        }
+      />
     </div>
   );
 }
