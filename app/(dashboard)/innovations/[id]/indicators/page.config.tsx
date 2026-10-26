@@ -36,6 +36,50 @@ export type IndicatorDocument = {
   size?: number;
 };
 
+export type IndicatorReview = {
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  note: string;
+  reviewedBy: string;
+  reviewedAt: string;
+};
+
+export type IndicatorReviewValues = {
+  action: "approve" | "reject";
+  note: string;
+};
+
+export type IndicatorAssessmentDto = {
+  indicatorId: number;
+  parameter: string;
+  score: number;
+  weight: number;
+  review: IndicatorReview;
+  documents: IndicatorDocument[];
+};
+
+export type IndicatorListResponse = {
+  canReview?: boolean;
+  data?: IndicatorAssessmentDto[];
+};
+
+export const reviewStatusOptions = [
+  {
+    value: "PENDING",
+    label: "Menunggu Verifikasi",
+    className: "bg-amber-100 text-amber-700",
+  },
+  {
+    value: "APPROVED",
+    label: "Disetujui",
+    className: "bg-emerald-100 text-emerald-700",
+  },
+  {
+    value: "REJECTED",
+    label: "Ditolak",
+    className: "bg-red-100 text-red-700",
+  },
+];
+
 export const indicators: IndicatorDto[] = [
   {
     id: 1,
