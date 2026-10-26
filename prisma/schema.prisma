@@ -186,6 +186,17 @@ model Announcement {
   @@map("announcements")
 }
 
+model InnovationIndex {
+  id        String   @id @default(uuid()) @db.Uuid
+  year      Int      @unique
+  score     Decimal  @db.Decimal(6, 2)
+  predicate String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("innovation_indices")
+}
+
 model DashboardConfiguration {
   id              String   @id @default(uuid()) @db.Uuid
   countdownTarget DateTime @map("countdown_target") @db.Timestamptz(3)
