@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import { ExternalLink, FilePlus, FileText, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { isMandatoryIndicator } from "@/lib/innovation-indicator";
 import {
   Select,
   SelectContent,
@@ -72,6 +73,9 @@ export default function IndicatorTable({
                   </td>
                   <td className="px-3 py-5 align-middle font-semibold leading-5">
                     {item.indicator}
+                    {isMandatoryIndicator(item.id) ? (
+                      <span className="text-red-500"> *</span>
+                    ) : null}
                   </td>
                   <td className="px-3 py-5 align-middle leading-5">{item.description}</td>
                   <td className="px-3 py-5 align-middle font-semibold text-blue-600">
