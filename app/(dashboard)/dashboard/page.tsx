@@ -1,14 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppSidebarLayout } from "@/components/app-sidebar";
 import { toast } from "@/components/ui/toast";
-import { parseApiError } from "@/lib/helper/response-api";
+import { parseApiError, parseApiResponse } from "@/lib/helper/response-api";
 
+import AssessedInnovationPreview from "./components/assessed-innovation-preview";
 import DashboardContent from "./components/dashboard-content";
 import {
+  ASSESSED_ITEMS_PER_PAGE,
   initialDashboardSummary,
+  type AssessedInnovationDto,
+  type AssessedInnovationListResponse,
+  type DashboardStatisticsResponse,
+  type InnovationIndexPoint,
+  type InnovationYearPoint,
   type AnnouncementItem,
   type CountdownValue,
   type DashboardApiData,
@@ -45,13 +52,37 @@ export default function DashboardPage() {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [countdownTarget, setCountdownTarget] = useState(0);
   const [countdownActive, setCountdownActive] = useState(false);
+  const [innovationIndex, setInnovationIndex] = useState<InnovationIndexPoint[]>(
+    [],
+  );
+  const [innovationsPerYear, setInnovationsPerYear] = useState<
+    InnovationYearPoint[]
+  >([]);
+  const [assessedItems, setAssessedItems] = useState<AssessedInnovationDto[]>(
+    [],
+  );
+  const [assessedTotal, setAssessedTotal] = useState(0);
+  const [assessedPage, setAssessedPage] = useState(1);
+  const [assessedLoading, setAssessedLoading] = useState(true);
+  const [previewItem, setPreviewItem] = useState<AssessedInnovationDto>();
+
+  const assessedTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(assessedTotal / ASSESSED_ITEMS_PER_PAGE)),
+    [assessedTotal],
+  );
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [response, announcementResponse, configurationResponse] = await Promise.all([
+      const [
+        response,
+        announcementResponse,
+        configurationResponse,
+        statisticsResponse,
+      ] = await Promise.all([
         fetch("/api/innovations?page=1&limit=1", { cache: "no-store" }),
         fetch("/api/announcements?dashboard=true", { cache: "no-store" }),
         fetch("/api/dashboard-configuration", { cache: "no-store" }),
+        fetch("/api/dashboard/statistics", { cache: "no-store" }),
       ]);
 
       if (!response.ok) {
@@ -75,6 +106,12 @@ export default function DashboardPage() {
         const target = new Date(configurationPayload.data?.countdownTarget || "").getTime();
         setCountdownTarget(Number.isFinite(target) ? target : 0);
         setCountdownActive(Boolean(configurationPayload.data?.countdownActive));
+      }
+      if (statisticsResponse.ok) {
+        const statisticsPayload =
+          (await statisticsResponse.json()) as DashboardStatisticsResponse;
+        setInnovationIndex(statisticsPayload.data?.innovationIndex ?? []);
+        setInnovationsPerYear(statisticsPayload.data?.innovationsPerYear ?? []);
       }
     } catch (error) {
       toast.add({
@@ -101,6 +138,42 @@ export default function DashboardPage() {
     };
   }, [countdownActive, countdownTarget]);
 
+  const fetchAssessedInnovations = useCallback(async () => {
+    try {
+      setAssessedLoading(true);
+      const params = new URLSearchParams({
+        page: String(assessedPage),
+        limit: String(ASSESSED_ITEMS_PER_PAGE),
+      });
+      const response = await fetch(
+        `/api/dashboard/assessed-innovations?${params.toString()}`,
+        { cache: "no-store" },
+      );
+      const payload = await parseApiResponse<AssessedInnovationListResponse>(
+        response,
+        "Gagal mengambil inovasi yang sudah dinilai",
+      );
+      setAssessedItems(Array.isArray(payload.data) ? payload.data : []);
+      setAssessedTotal(Number(payload.total) || 0);
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title:
+          error instanceof Error
+            ? error.message
+            : "Gagal mengambil inovasi yang sudah dinilai",
+      });
+    } finally {
+      setAssessedLoading(false);
+    }
+  }, [assessedPage]);
+
+  useEffect(() => {
+    // Fetch berjalan saat halaman daftar inovasi yang dinilai berubah.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchAssessedInnovations();
+  }, [fetchAssessedInnovations]);
+
   useEffect(() => {
     // Fetch berjalan saat halaman dashboard dimuat.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -116,7 +189,25 @@ export default function DashboardPage() {
         assessmentData={assessmentData}
         announcements={announcements}
         countdownActive={countdownActive}
+        innovationIndex={innovationIndex}
+        innovationsPerYear={innovationsPerYear}
+        assessed={{
+          items: assessedItems,
+          total: assessedTotal,
+          currentPage: assessedPage,
+          totalPages: assessedTotalPages,
+          loading: assessedLoading,
+          onPageChange: setAssessedPage,
+          onPreview: setPreviewItem,
+        }}
       />
+
+      {previewItem ? (
+        <AssessedInnovationPreview
+          innovation={previewItem}
+          onClose={() => setPreviewItem(undefined)}
+        />
+      ) : null}
     </AppSidebarLayout>
   );
 }
