@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { innovationOwnerScope } from "@/lib/innovation-access";
+import { resetIndicatorReview } from "@/lib/innovation-indicator";
 import { ensureMinioBucket, getMinioClient, minioBucket, minioPublicUrl } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
 
@@ -86,19 +87,25 @@ export async function POST(
     );
 
     const rawDate = String(formData.get("documentDate") || "");
-    const document = await prisma.innovationIndicatorDocument.create({
-      data: {
-        assessmentId: assessment.id,
-        documentNumber: String(formData.get("documentNumber") || "").trim() || null,
-        documentDate: rawDate ? new Date(`${rawDate}T00:00:00.000Z`) : null,
-        documentTitle,
-        originalName: file.name,
-        objectName,
-        url: minioPublicUrl(objectName),
-        mimeType: file.type,
-        size: file.size,
-      },
-    });
+    const [document] = await prisma.$transaction([
+      prisma.innovationIndicatorDocument.create({
+        data: {
+          assessmentId: assessment.id,
+          documentNumber: String(formData.get("documentNumber") || "").trim() || null,
+          documentDate: rawDate ? new Date(`${rawDate}T00:00:00.000Z`) : null,
+          documentTitle,
+          originalName: file.name,
+          objectName,
+          url: minioPublicUrl(objectName),
+          mimeType: file.type,
+          size: file.size,
+        },
+      }),
+      prisma.innovationIndicatorAssessment.update({
+        where: { id: assessment.id },
+        data: resetIndicatorReview,
+      }),
+    ]);
 
     return NextResponse.json(
       { message: "Dokumen berhasil diunggah.", data: { id: document.id } },

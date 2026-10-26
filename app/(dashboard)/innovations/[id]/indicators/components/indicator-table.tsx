@@ -1,8 +1,17 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { ExternalLink, FilePlus, FileText, Trash2 } from "lucide-react";
+import {
+  CircleCheck,
+  CircleX,
+  ExternalLink,
+  FilePlus,
+  FileText,
+  MessageSquareText,
+  Trash2,
+} from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { isMandatoryIndicator } from "@/lib/innovation-indicator";
 import {
@@ -13,8 +22,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import type { IndicatorDto } from "../page.config";
-import type { IndicatorDocument } from "../page.config";
+import {
+  reviewStatusOptions,
+  type IndicatorDocument,
+  type IndicatorDto,
+  type IndicatorReview,
+  type IndicatorReviewValues,
+} from "../page.config";
 import UploadDocumentDialog from "./upload-document-dialog";
 
 type Props = {
@@ -22,6 +36,12 @@ type Props = {
   items: IndicatorDto[];
   selections: Record<number, string>;
   documents: Record<number, IndicatorDocument[]>;
+  reviews: Record<number, IndicatorReview>;
+  canReview: boolean;
+  onReview: (
+    indicator: IndicatorDto,
+    action: IndicatorReviewValues["action"],
+  ) => void;
   onSelect: (id: number, value: string) => void;
   onDocument: (id: number, document: IndicatorDocument) => Promise<boolean>;
   onDeleteDocument: (id: number, document: IndicatorDocument) => void;
@@ -32,6 +52,9 @@ export default function IndicatorTable({
   items,
   selections,
   documents,
+  reviews,
+  canReview,
+  onReview,
   onSelect,
   onDocument,
   onDeleteDocument,
@@ -64,6 +87,11 @@ export default function IndicatorTable({
         <tbody>
           {items.map((item) => {
             const selectedParameter = selections[item.id];
+            const review = reviews[item.id];
+            const reviewStatus = reviewStatusOptions.find(
+              (option) => option.value === review?.status,
+            );
+            const isRejected = review?.status === "REJECTED";
 
             return (
               <Fragment key={item.id}>
@@ -78,8 +106,19 @@ export default function IndicatorTable({
                     ) : null}
                   </td>
                   <td className="px-3 py-5 align-middle leading-5">{item.description}</td>
-                  <td className="px-3 py-5 align-middle font-semibold text-blue-600">
-                    {item.weight.toFixed(2)}
+                  <td className="px-3 py-5 align-middle font-semibold">
+                    {isRejected ? (
+                      <>
+                        <span className="text-slate-400 line-through">
+                          {item.weight.toFixed(2)}
+                        </span>
+                        <span className="block text-red-600">0.00</span>
+                      </>
+                    ) : (
+                      <span className="text-blue-600">
+                        {item.weight.toFixed(2)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-5 align-middle">
                     <Select
@@ -125,10 +164,57 @@ export default function IndicatorTable({
                               {selectedParameter}
                             </p>
                           </div>
-                          <span className="inline-flex w-fit shrink-0 rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold text-blue-600">
-                            {item.fileTypes}
-                          </span>
+                          <div className="flex shrink-0 flex-wrap items-center gap-2">
+                            {reviewStatus && (documents[item.id] ?? []).length > 0 ? (
+                              <Badge className={reviewStatus.className}>
+                                {reviewStatus.label}
+                              </Badge>
+                            ) : null}
+                            <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold text-blue-600">
+                              {item.fileTypes}
+                            </span>
+                          </div>
                         </div>
+
+                        {review?.note ? (
+                          <div
+                            className={
+                              isRejected
+                                ? "flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4"
+                                : "flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
+                            }
+                          >
+                            <MessageSquareText
+                              className={
+                                isRejected
+                                  ? "mt-0.5 size-4 shrink-0 text-red-600"
+                                  : "mt-0.5 size-4 shrink-0 text-emerald-600"
+                              }
+                            />
+                            <div className="min-w-0">
+                              <p
+                                className={
+                                  isRejected
+                                    ? "text-[10px] font-bold uppercase tracking-wide text-red-600"
+                                    : "text-[10px] font-bold uppercase tracking-wide text-emerald-600"
+                                }
+                              >
+                                Catatan Verifikator
+                              </p>
+                              <p className="mt-1 whitespace-pre-line text-xs leading-6 text-slate-700">
+                                {review.note}
+                              </p>
+                              {review.reviewedBy ? (
+                                <p className="mt-1 text-[11px] text-slate-500">
+                                  {review.reviewedBy}
+                                  {review.reviewedAt
+                                    ? ` · ${new Date(review.reviewedAt).toLocaleString("id-ID")}`
+                                    : ""}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : null}
 
                         <div className="flex flex-col items-start gap-4 rounded-xl border border-blue-100 bg-white p-4">
                           <div className="min-w-0">
@@ -190,15 +276,40 @@ export default function IndicatorTable({
                               ))}
                             </div>
                           )}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="min-h-9 max-w-full border-blue-200 bg-blue-50 px-3 py-2 font-semibold text-blue-600 hover:bg-blue-100 hover:text-blue-700"
-                            onClick={() => setUploadIndicator(item)}
-                          >
-                            <FilePlus className="size-3.5 shrink-0" />
-                            <span className="truncate">Upload Dokumen</span>
-                          </Button>
+                          <div className="flex w-full flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="min-h-9 max-w-full border-blue-200 bg-blue-50 px-3 py-2 font-semibold text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+                              onClick={() => setUploadIndicator(item)}
+                            >
+                              <FilePlus className="size-3.5 shrink-0" />
+                              <span className="truncate">Upload Dokumen</span>
+                            </Button>
+                            {canReview && (documents[item.id] ?? []).length > 0 ? (
+                              <div className="flex flex-wrap gap-2 sm:ml-auto">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  disabled={review?.status === "APPROVED"}
+                                  className="min-h-9 border-emerald-200 bg-emerald-50 px-3 font-semibold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                                  onClick={() => onReview(item, "approve")}
+                                >
+                                  <CircleCheck className="size-3.5" />
+                                  Setujui
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="min-h-9 border-red-200 bg-red-50 px-3 font-semibold text-red-600 hover:bg-red-100 hover:text-red-700"
+                                  onClick={() => onReview(item, "reject")}
+                                >
+                                  <CircleX className="size-3.5" />
+                                  {isRejected ? "Ubah Catatan" : "Tolak"}
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </td>
