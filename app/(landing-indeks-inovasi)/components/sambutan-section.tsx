@@ -22,7 +22,7 @@ export default function SambutanSection({ setModalData }: SambutanSectionProps) 
             <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] border-[1px] border-slate-200">
               <div className="aspect-[4/5] relative bg-slate-50">
                 <Image
-                  src="/images/bupati.webp"
+                  src="/images/Bupati.jpeg"
                   alt="Bupati Kabupaten Karimun"
                   fill
                   className="object-cover object-top transition-transform duration-1000 hover:scale-105"
