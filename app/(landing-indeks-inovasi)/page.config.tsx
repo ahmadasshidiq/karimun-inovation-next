@@ -4,6 +4,7 @@
 
 export type BeritaItem = {
   id: string;
+  slug?: string;
   title: string;
   date: string;
   category: string;
