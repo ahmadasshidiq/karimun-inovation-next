@@ -87,15 +87,11 @@ export default function LandingIndeksInovasiPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const apiBaseUrl = process.env.NEXT_PUBLIC_PUBLIC_API_URL?.replace(/\/$/, "");
+    const apiBaseUrl = (
+      process.env.NEXT_PUBLIC_PUBLIC_API_URL || window.location.origin
+    ).replace(/\/$/, "");
 
     const loadAnnouncements = async () => {
-      if (!apiBaseUrl) {
-        setAnnouncementsError("Konfigurasi API pengumuman belum tersedia.");
-        setAnnouncementsLoading(false);
-        return;
-      }
-
       try {
         const response = await fetch(
           `${apiBaseUrl}/api/public/announcements?limit=3`,
