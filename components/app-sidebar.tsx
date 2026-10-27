@@ -190,6 +190,16 @@ const menuItems: SidebarItem[] = [
         access: { model: "announcements", action: "get-all" },
       },
       {
+        title: "Berita",
+        href: "/settings/news",
+        access: { model: "news", action: "manage" },
+      },
+      {
+        title: "Kategori Berita",
+        href: "/settings/news-categories",
+        access: { model: "news", action: "manage" },
+      },
+      {
         title: "Konfigurasi Dashboard",
         href: "/settings/dashboard-configuration",
         access: { model: "dashboard-configurations", action: "get-by-id" },
