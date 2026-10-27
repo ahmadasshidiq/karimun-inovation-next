@@ -17,13 +17,38 @@ import FooterSection from "./components/footer-section";
 import ArticleModal from "./components/article-modal";
 
 // Config & Data
-import { beritaData, pengumumanData, type ModalData } from "./page.config";
+import {
+  beritaData,
+  type ModalData,
+  type PengumumanItem,
+} from "./page.config";
+
+type PublicAnnouncement = {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  announcementDate: string;
+};
+
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
+
+const toPlainText = (content: string) =>
+  content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 export default function LandingIndeksInovasiPage() {
   // --- States ---
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [modalData, setModalData] = useState<ModalData>(null);
+  const [announcements, setAnnouncements] = useState<PengumumanItem[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsError, setAnnouncementsError] = useState("");
 
   // --- Handlers ---
   const handleScroll = useCallback((id: string) => {
@@ -58,6 +83,62 @@ export default function LandingIndeksInovasiPage() {
       document.removeEventListener("scroll", updateNavbar, true);
       window.removeEventListener("resize", updateNavbar);
     };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const apiBaseUrl = (
+      process.env.NEXT_PUBLIC_PUBLIC_API_URL || window.location.origin
+    ).replace(/\/$/, "");
+
+    const loadAnnouncements = async () => {
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/public/announcements?limit=3`,
+          { cache: "no-store", signal: controller.signal },
+        );
+        if (!response.ok) throw new Error("Gagal mengambil pengumuman.");
+
+        const payload = (await response.json()) as {
+          success?: boolean;
+          data?: PublicAnnouncement[];
+        };
+        if (!payload.success || !Array.isArray(payload.data)) {
+          throw new Error("Respons pengumuman tidak valid.");
+        }
+
+        setAnnouncements(
+          payload.data.map((item) => {
+            const date = formatDate(item.announcementDate);
+
+            return {
+              id: item.id,
+              title: item.title,
+              date,
+              deadline: date,
+              status: "Dibuka",
+              category: "Pengumuman Resmi",
+              summary: item.summary,
+              description: toPlainText(item.content),
+              timeline: [],
+            };
+          }),
+        );
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setAnnouncementsError(
+            error instanceof Error
+              ? error.message
+              : "Gagal mengambil pengumuman.",
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) setAnnouncementsLoading(false);
+      }
+    };
+
+    void loadAnnouncements();
+    return () => controller.abort();
   }, []);
 
   // Animation effect
@@ -111,7 +192,12 @@ export default function LandingIndeksInovasiPage() {
         <HeroSection handleScroll={handleScroll} />
         <SambutanSection setModalData={setModalData} />
         <BeritaSection items={beritaData} />
-        <PengumumanSection pengumumanData={pengumumanData} setModalData={setModalData} />
+        <PengumumanSection
+          pengumumanData={announcements}
+          loading={announcementsLoading}
+          error={announcementsError}
+          setModalData={setModalData}
+        />
         <PedomanSection setModalData={setModalData} />
         <GaleriSection />
         <FaqSection />

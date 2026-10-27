@@ -5,10 +5,17 @@ import { type PengumumanItem, type ModalData } from "../page.config";
 
 type Props = {
   pengumumanData: PengumumanItem[];
+  loading: boolean;
+  error: string;
   setModalData: (data: ModalData) => void;
 };
 
-export default function PengumumanSection({ pengumumanData, setModalData }: Props) {
+export default function PengumumanSection({
+  pengumumanData,
+  loading,
+  error,
+  setModalData,
+}: Props) {
   return (
     <section id="pengumuman" className="py-24 lg:py-32 bg-white border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,7 +32,34 @@ export default function PengumumanSection({ pengumumanData, setModalData }: Prop
         </div>
 
         <div className="space-y-16">
-          {pengumumanData.map((item) => (
+          {loading && (
+            <div className="space-y-8" aria-label="Memuat pengumuman">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="flex items-center gap-10 animate-pulse">
+                  <div className="h-28 w-28 shrink-0 rounded-full bg-slate-100" />
+                  <div className="flex-1 space-y-4">
+                    <div className="h-3 w-40 rounded bg-slate-100" />
+                    <div className="h-7 w-3/4 rounded bg-slate-100" />
+                    <div className="h-4 w-full rounded bg-slate-100" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loading && error && (
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 px-6 py-8 text-center text-sm text-amber-800">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && pengumumanData.length === 0 && (
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-slate-500">
+              Belum ada pengumuman.
+            </div>
+          )}
+
+          {!loading && !error && pengumumanData.map((item) => (
             <article
               key={item.id}
               data-landing-card
@@ -60,7 +94,7 @@ export default function PengumumanSection({ pengumumanData, setModalData }: Prop
                     {item.category}
                   </span>
                   <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-[0.2em]">
-                    DEADLINE: {item.deadline}
+                    DITERBITKAN: {item.date}
                   </span>
                 </div>
 
@@ -74,7 +108,7 @@ export default function PengumumanSection({ pengumumanData, setModalData }: Prop
                   onClick={() =>
                     setModalData({
                       title: item.title,
-                      meta: `Status: ${item.status} • Batas: ${item.deadline}`,
+                      meta: `Status: ${item.status} • Diterbitkan: ${item.date}`,
                       content: item.description,
                       timeline: item.timeline,
                     })
