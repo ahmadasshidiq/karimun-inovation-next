@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { innovationOwnerScope } from "@/lib/innovation-access";
 import {
+  getAssessmentScore,
+  getMissingMandatoryIndicators,
+  MANDATORY_INDICATOR_IDS,
+  VIDEO_INDICATOR_ID,
+} from "@/lib/innovation-indicator";
+import {
   ACTIVE_SUBMISSION_STATUSES,
   getActiveCompetitionPeriod,
   SUBMISSION_PERMISSION_MODELS,
@@ -26,6 +32,35 @@ const assessmentGroups = [
   { subject: "Dampak", indicators: [16, 17, 18], maximumScore: 8 },
   { subject: "Keberlanjutan", indicators: [19, 20], maximumScore: 6 },
 ];
+
+const documentUrl = (innovationId: string, documentId: string) =>
+  `/api/innovations/${innovationId}/indicators/${VIDEO_INDICATOR_ID}/documents/${documentId}`;
+
+// Video diambil dari dokumen indikator video; gambar pertama dipakai sebagai cover.
+const getInnovationVideo = (
+  innovationId: string,
+  assessments: {
+    indicatorId: number;
+    documents: { id: string; mimeType: string }[];
+  }[],
+) => {
+  const documents =
+    assessments.find(
+      (assessment) => assessment.indicatorId === VIDEO_INDICATOR_ID,
+    )?.documents ?? [];
+  const video = documents.find((document) =>
+    document.mimeType.startsWith("video/"),
+  );
+  if (!video) return null;
+  const poster = documents.find((document) =>
+    document.mimeType.startsWith("image/"),
+  );
+
+  return {
+    url: documentUrl(innovationId, video.id),
+    posterUrl: poster ? documentUrl(innovationId, poster.id) : null,
+  };
+};
 
 const dateOnly = (value: Date | null) =>
   value ? value.toISOString().slice(0, 10) : "";
@@ -73,7 +108,24 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           createdBy: { include: { institution: true } },
-          indicatorAssessments: { select: { indicatorId: true, score: true } },
+          indicatorAssessments: {
+            select: {
+              indicatorId: true,
+              score: true,
+              reviewStatus: true,
+              _count: { select: { documents: true } },
+              documents: {
+                where: {
+                  OR: [
+                    { mimeType: { startsWith: "video/" } },
+                    { mimeType: { startsWith: "image/" } },
+                  ],
+                },
+                select: { id: true, mimeType: true },
+                orderBy: { createdAt: "asc" },
+              },
+            },
+          },
           submissions: {
             where: { status: { in: ACTIVE_SUBMISSION_STATUSES } },
             select: { track: true, periodId: true },
@@ -132,6 +184,16 @@ export async function GET(request: NextRequest) {
           ? awardFile.url
           : "",
       awarded: Boolean(awardFile),
+      video: getInnovationVideo(item.id, item.indicatorAssessments),
+      mandatoryIndicatorsFulfilled:
+        MANDATORY_INDICATOR_IDS.length -
+        getMissingMandatoryIndicators(
+          item.indicatorAssessments.map((assessment) => ({
+            indicatorId: assessment.indicatorId,
+            documentCount: assessment._count.documents,
+            reviewStatus: assessment.reviewStatus,
+          })),
+        ).length,
       contractSubmitted: item.submissions.some(
         (submission) => submission.track === SUBMISSION_TRACKS.CONTRACT,
       ),
@@ -142,7 +204,7 @@ export async function GET(request: NextRequest) {
       ),
       skor: ["PENDING_REVIEW", "APPROVED"].includes(item.approvalStatus)
         ? item.indicatorAssessments.reduce(
-            (total, assessment) => total + Number(assessment.score),
+            (total, assessment) => total + getAssessmentScore(assessment),
             0,
           )
         : 0,
@@ -160,7 +222,7 @@ export async function GET(request: NextRequest) {
         innovation.indicatorAssessments.reduce(
           (subtotal, assessment) =>
             group.indicators.includes(assessment.indicatorId)
-              ? subtotal + Number(assessment.score)
+              ? subtotal + getAssessmentScore(assessment)
               : subtotal,
           0,
         ),

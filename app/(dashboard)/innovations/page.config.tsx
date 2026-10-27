@@ -29,6 +29,9 @@ import {
   type FilterOption,
 } from "@/components/table-elements";
 import { formatDateId } from "@/lib/helper/date";
+import { MANDATORY_INDICATOR_IDS } from "@/lib/innovation-indicator";
+
+import InnovationVideo from "./components/innovation-video";
 
 export type InnovationStage = "Inisiatif" | "Uji Coba" | "Penerapan";
 
@@ -287,6 +290,8 @@ export type InnovationTableDto = {
   awardFileUrl: string;
   awarded: boolean;
   skor: number;
+  video: { url: string; posterUrl: string | null } | null;
+  mandatoryIndicatorsFulfilled: number;
   contractSubmitted: boolean;
   competitionSubmitted: boolean;
 };
@@ -306,7 +311,13 @@ export type ActiveCompetitionPeriod = {
 
 export type InnovationFormValues = Omit<
   InnovationTableDto,
-  "id" | "number" | "awarded" | "contractSubmitted" | "competitionSubmitted"
+  | "id"
+  | "number"
+  | "awarded"
+  | "video"
+  | "mandatoryIndicatorsFulfilled"
+  | "contractSubmitted"
+  | "competitionSubmitted"
 >;
 export type InnovationFilters = {
   search: string;
@@ -400,6 +411,13 @@ export const columnFormats: DefaultColumnFormat<InnovationTableDto>[] = [
   { key: "number", title: "#", formatter: (value) => String(value) },
   { key: "organization", title: "Nama Akun" },
   { key: "innovationName", title: "Nama Inovasi" },
+  {
+    key: "video",
+    title: "Video Inovasi",
+    formatter: (_value, row) => (
+      <InnovationVideo title={row.innovationName} video={row.video} />
+    ),
+  },
   {
     key: "stage",
     title: "Tahapan Inovasi",
@@ -497,10 +515,14 @@ type RenderActionsProps = {
   onDelete: (id: string) => void | Promise<void>;
 };
 
-const INCOMPLETE_HINT = "Lengkapi dan kirim data inovasi terlebih dahulu.";
+const getIndicatorHint = (row: InnovationTableDto) =>
+  row.mandatoryIndicatorsFulfilled < MANDATORY_INDICATOR_IDS.length
+    ? `Indikator wajib (*) baru terpenuhi ${row.mandatoryIndicatorsFulfilled}/${MANDATORY_INDICATOR_IDS.length}.`
+    : undefined;
 
 const getContractHint = (row: InnovationTableDto) => {
-  if (row.submissionStatus !== "SUBMITTED") return INCOMPLETE_HINT;
+  const indicatorHint = getIndicatorHint(row);
+  if (indicatorHint) return indicatorHint;
   if (row.contractSubmitted) return "Sudah dikirim sebagai Perjanjian Kinerja.";
   return undefined;
 };
@@ -509,7 +531,8 @@ const getCompetitionHint = (
   row: InnovationTableDto,
   period: ActiveCompetitionPeriod | null,
 ) => {
-  if (row.submissionStatus !== "SUBMITTED") return INCOMPLETE_HINT;
+  const indicatorHint = getIndicatorHint(row);
+  if (indicatorHint) return indicatorHint;
   if (!period) return "Periode lomba belum dibuka.";
   if (row.competitionSubmitted) return `Sudah dikirim ke ${period.name}.`;
   return `${period.name}, ditutup ${formatDateId(period.endDate)}.`;
@@ -538,7 +561,7 @@ const getSubmissionItems = (
           label: "Kirim Sebagai Lomba Inovasi",
           icon: Trophy,
           disabled:
-            row.submissionStatus !== "SUBMITTED" ||
+            Boolean(getIndicatorHint(row)) ||
             !period ||
             row.competitionSubmitted,
           hint: getCompetitionHint(row, period),

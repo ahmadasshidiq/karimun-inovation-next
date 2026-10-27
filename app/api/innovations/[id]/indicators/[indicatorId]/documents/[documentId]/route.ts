@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { innovationOwnerScope } from "@/lib/innovation-access";
+import {
+  canReviewIndicators,
+  resetIndicatorReview,
+} from "@/lib/innovation-indicator";
 import { getMinioClient, minioBucket } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
 
@@ -10,6 +14,7 @@ const findDocument = (
   indicatorId: string,
   documentId: string,
   user: Awaited<ReturnType<typeof getAuthenticatedUser>>,
+  allowReviewer = false,
 ) =>
   prisma.innovationIndicatorDocument.findFirst({
     where: {
@@ -17,23 +22,31 @@ const findDocument = (
       assessment: {
         innovationId: id,
         indicatorId: Number(indicatorId),
-        ...(user ? { innovation: innovationOwnerScope(user) } : {}),
+        ...(user &&
+        !(allowReviewer && canReviewIndicators(user.role.permission))
+          ? { innovation: innovationOwnerScope(user) }
+          : {}),
       },
     },
   });
 
 export async function GET(
   _request: NextRequest,
-  context: { params: Promise<{ id: string; indicatorId: string; documentId: string }> },
+  context: {
+    params: Promise<{ id: string; indicatorId: string; documentId: string }>;
+  },
 ) {
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id, indicatorId, documentId } = await context.params;
-  const document = await findDocument(id, indicatorId, documentId, user);
+  const document = await findDocument(id, indicatorId, documentId, user, true);
   if (!document)
-    return NextResponse.json({ message: "Dokumen tidak ditemukan." }, { status: 404 });
+    return NextResponse.json(
+      { message: "Dokumen tidak ditemukan." },
+      { status: 404 },
+    );
 
   try {
     const minio = getMinioClient();
@@ -41,18 +54,25 @@ export async function GET(
       minioBucket,
       document.objectName,
       15 * 60,
-      { "response-content-disposition": `inline; filename="${document.originalName.replace(/"/g, "")}"` },
+      {
+        "response-content-disposition": `inline; filename="${document.originalName.replace(/"/g, "")}"`,
+      },
     );
     return NextResponse.redirect(url);
   } catch (error) {
     console.error("Create MinIO document URL failed", error);
-    return NextResponse.json({ message: "Gagal membuka dokumen." }, { status: 500 });
+    return NextResponse.json(
+      { message: "Gagal membuka dokumen." },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(
   _request: NextRequest,
-  context: { params: Promise<{ id: string; indicatorId: string; documentId: string }> },
+  context: {
+    params: Promise<{ id: string; indicatorId: string; documentId: string }>;
+  },
 ) {
   const user = await getAuthenticatedUser();
   if (!user)
@@ -61,15 +81,29 @@ export async function DELETE(
   const { id, indicatorId, documentId } = await context.params;
   const document = await findDocument(id, indicatorId, documentId, user);
   if (!document)
-    return NextResponse.json({ message: "Dokumen tidak ditemukan." }, { status: 404 });
+    return NextResponse.json(
+      { message: "Dokumen tidak ditemukan." },
+      { status: 404 },
+    );
 
   try {
     const minio = getMinioClient();
     await minio.removeObject(minioBucket, document.objectName);
-    await prisma.innovationIndicatorDocument.delete({ where: { id: document.id } });
+    await prisma.$transaction([
+      prisma.innovationIndicatorDocument.delete({
+        where: { id: document.id },
+      }),
+      prisma.innovationIndicatorAssessment.update({
+        where: { id: document.assessmentId },
+        data: resetIndicatorReview,
+      }),
+    ]);
     return NextResponse.json({ message: "Dokumen berhasil dihapus." });
   } catch (error) {
     console.error("Delete MinIO document failed", error);
-    return NextResponse.json({ message: "Gagal menghapus dokumen." }, { status: 500 });
+    return NextResponse.json(
+      { message: "Gagal menghapus dokumen." },
+      { status: 500 },
+    );
   }
 }

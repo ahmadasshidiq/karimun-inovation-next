@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { innovationOwnerScope } from "@/lib/innovation-access";
 import {
+  getMissingMandatoryIndicators,
+  MANDATORY_INDICATOR_IDS,
+  MANDATORY_INDICATORS,
+} from "@/lib/innovation-indicator";
+import {
   ACTIVE_SUBMISSION_STATUSES,
   getActiveCompetitionPeriod,
   isSubmissionTrack,
@@ -48,7 +53,17 @@ export async function POST(
   const { id } = await context.params;
   const innovation = await prisma.innovation.findFirst({
     where: { id, deletedAt: null, ...innovationOwnerScope(user) },
-    select: { id: true, submissionStatus: true },
+    select: {
+      id: true,
+      indicatorAssessments: {
+        where: { indicatorId: { in: MANDATORY_INDICATOR_IDS } },
+        select: {
+          indicatorId: true,
+          reviewStatus: true,
+          _count: { select: { documents: true } },
+        },
+      },
+    },
   });
   if (!innovation) {
     return NextResponse.json(
@@ -56,9 +71,22 @@ export async function POST(
       { status: 404 },
     );
   }
-  if (innovation.submissionStatus !== "SUBMITTED") {
+  const missingIndicators = getMissingMandatoryIndicators(
+    innovation.indicatorAssessments.map((assessment) => ({
+      indicatorId: assessment.indicatorId,
+      documentCount: assessment._count.documents,
+      reviewStatus: assessment.reviewStatus,
+    })),
+  );
+  if (missingIndicators.length > 0) {
+    const names = missingIndicators
+      .map(
+        (indicatorId) =>
+          MANDATORY_INDICATORS[indicatorId as keyof typeof MANDATORY_INDICATORS],
+      )
+      .join(", ");
     return NextResponse.json(
-      { message: "Lengkapi dan kirim data inovasi terlebih dahulu." },
+      { message: `Lengkapi indikator wajib terlebih dahulu: ${names}.` },
       { status: 400 },
     );
   }

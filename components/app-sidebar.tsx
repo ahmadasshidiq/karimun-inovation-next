@@ -149,11 +149,6 @@ const menuItems: SidebarItem[] = [
         access: { model: "innovation-competitions", action: "get-all" },
       },
       {
-        title: "Papan Peringkat",
-        href: "/innovation-competitions/leaderboard",
-        access: { model: "innovation-competitions", action: "get-all" },
-      },
-      {
         title: "Periode Lomba",
         href: "/innovation-competitions/periods",
         access: { model: "competition-periods", action: "get-all" },
