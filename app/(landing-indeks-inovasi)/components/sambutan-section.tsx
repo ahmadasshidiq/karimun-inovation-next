@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import bupatiImage from "@/public/images/Bupati.jpeg";
 import { type ModalData } from "../page.config";
 
 type SambutanSectionProps = {
@@ -22,7 +23,7 @@ export default function SambutanSection({ setModalData }: SambutanSectionProps) 
             <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] border-[1px] border-slate-200">
               <div className="aspect-[4/5] relative bg-slate-50">
                 <Image
-                  src="/images/Bupati.jpeg"
+                  src={bupatiImage}
                   alt="Bupati Kabupaten Karimun"
                   fill
                   className="object-cover object-top transition-transform duration-1000 hover:scale-105"
