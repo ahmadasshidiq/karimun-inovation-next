@@ -13,6 +13,23 @@ enum Status {
   @@map("status")
 }
 
+enum NewsStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum NewsType {
+  BERITA
+  AGENDA
+}
+
+enum NewsCategory {
+  SOSIALISASI
+  BIMBINGAN_TEKNIS
+  DISEMINASI
+}
+
 model Role {
   id         String @id @default(uuid()) @db.Uuid
   name       String
@@ -23,28 +40,28 @@ model Role {
 }
 
 model User {
-  id                    String                          @id @default(uuid()) @db.Uuid
-  roleId                String                          @map("role_id") @db.Uuid
-  institutionId         String                          @map("institution_id") @db.Uuid
-  username              String                          @unique @db.VarChar(100)
-  email                 String?                         @unique @db.VarChar(255)
-  fullname              String                          @db.VarChar(255)
-  nip                   String?                         @unique @db.VarChar(50)
-  phone                 String?                         @db.VarChar(30)
-  status                Status                          @default(ACTIVE)
-  currentToken          String?                         @map("current_token") @db.Text
-  password              String                          @db.Text
-  salt                  String                          @db.VarChar(255)
-  createdAt             DateTime                        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime                        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt             DateTime?                       @map("deleted_at") @db.Timestamptz(3)
-  role                  Role                            @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  institution           Institution                     @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id                    String                 @id @default(uuid()) @db.Uuid
+  roleId                String                 @map("role_id") @db.Uuid
+  institutionId         String                 @map("institution_id") @db.Uuid
+  username              String                 @unique @db.VarChar(100)
+  email                 String?                @unique @db.VarChar(255)
+  fullname              String                 @db.VarChar(255)
+  nip                   String?                @unique @db.VarChar(50)
+  phone                 String?                @db.VarChar(30)
+  status                Status                 @default(ACTIVE)
+  currentToken          String?                @map("current_token") @db.Text
+  password              String                 @db.Text
+  salt                  String                 @db.VarChar(255)
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt             DateTime?              @map("deleted_at") @db.Timestamptz(3)
+  role                  Role                   @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  institution           Institution            @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   innovations           Innovation[]
-  approvedInnovations   Innovation[]                    @relation("InnovationApprovals")
+  approvedInnovations   Innovation[]           @relation("InnovationApprovals")
   innovationSubmissions InnovationSubmission[]
-  reviewedSubmissions   InnovationSubmission[]          @relation("SubmissionReviews")
-  reviewedIndicators    InnovationIndicatorAssessment[] @relation("IndicatorReviews")
+  reviewedSubmissions   InnovationSubmission[] @relation("SubmissionReviews")
+  newsArticles          News[]
 
   @@index([roleId])
   @@index([institutionId])
@@ -143,14 +160,9 @@ model InnovationIndicatorAssessment {
   indicatorId  Int                           @map("indicator_id")
   parameter    String                        @db.Text
   score        Decimal                       @db.Decimal(8, 2)
-  reviewStatus String                        @default("PENDING") @map("review_status") @db.VarChar(20)
-  reviewNote   String?                       @map("review_note") @db.Text
-  reviewedById String?                       @map("reviewed_by") @db.Uuid
-  reviewedAt   DateTime?                     @map("reviewed_at") @db.Timestamptz(3)
   createdAt    DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
   innovation   Innovation                    @relation(fields: [innovationId], references: [id], onDelete: Cascade)
-  reviewedBy   User?                         @relation("IndicatorReviews", fields: [reviewedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
   documents    InnovationIndicatorDocument[]
 
   @@unique([innovationId, indicatorId])
@@ -192,15 +204,46 @@ model Announcement {
   @@map("announcements")
 }
 
-model InnovationIndex {
+model News {
+  id          String       @id @default(uuid()) @db.Uuid
+  title       String       @db.VarChar(255)
+  slug        String       @unique @db.VarChar(255)
+  excerpt     String       @db.Text
+  content     String       @db.Text
+  coverImage  String?      @map("cover_image") @db.Text
+  category    NewsCategory
+  categoryId  String?      @map("category_id") @db.Uuid
+  type        NewsType     @default(BERITA)
+  eventDate   DateTime?    @map("event_date") @db.Date
+  isFeatured  Boolean      @default(false) @map("is_featured")
+  status      NewsStatus   @default(DRAFT)
+  publishedAt DateTime?    @map("published_at") @db.Timestamptz(3)
+  authorId    String       @map("author_id") @db.Uuid
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt   DateTime?    @map("deleted_at") @db.Timestamptz(3)
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  categoryRef NewsCategoryEntity? @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([status, publishedAt])
+  @@index([isFeatured, publishedAt])
+  @@index([authorId])
+  @@index([deletedAt])
+  @@index([categoryId])
+  @@map("news")
+}
+
+model NewsCategoryEntity {
   id        String   @id @default(uuid()) @db.Uuid
-  year      Int      @unique
-  score     Decimal  @db.Decimal(6, 2)
-  predicate String?  @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  slug      String   @unique @db.VarChar(120)
+  isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  news      News[]
 
-  @@map("innovation_indices")
+  @@index([isActive])
+  @@map("news_categories")
 }
 
 model DashboardConfiguration {

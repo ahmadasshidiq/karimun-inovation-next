@@ -169,6 +169,38 @@
   z-index: 0;
 }
 
+/* Dashboard dialogs use a white surface even when the application theme is dark. */
+[data-slot="dialog-content"] {
+  background-color: #ffffff !important;
+  color: #0f172a;
+}
+
+[data-slot="dialog-content"] label,
+[data-slot="dialog-content"] input,
+[data-slot="dialog-content"] textarea,
+[data-slot="dialog-content"] [data-slot="select-trigger"] {
+  color: #0f172a;
+  opacity: 1;
+}
+
+[data-slot="dialog-content"] input::placeholder,
+[data-slot="dialog-content"] textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+/* Keep dashboard dialog actions aligned with the blue dashboard theme. */
+[data-slot="dialog-content"] [data-slot="dialog-footer"] button:not([class*="border-blue-600"]) {
+  background-color: #2362ee;
+  color: #ffffff;
+}
+
+[data-slot="dialog-content"] [data-slot="dialog-footer"] button[class*="border"] {
+  background-color: #ffffff;
+  color: #2362ee;
+  border-color: #2362ee;
+}
+
 /* ============================================================
    HERO SECTION — Animasi load fade-up
    ============================================================ */
