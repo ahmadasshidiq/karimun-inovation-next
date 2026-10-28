@@ -165,69 +165,32 @@ export const pengumumanData: PengumumanItem[] = [
 ];
 
 export const stepsData: StepItem[] = [
-  {
-    step: 1,
-    title: "Aktivasi Akun Unit Kerja / OPD",
-    subtitle: "Kredensial Resmi",
-    description: "Admin inovasi unit kerja masuk menggunakan akun yang telah diverifikasi oleh Baperlitbang. Jika belum memiliki akses, lakukan permohonan melalui admin daerah.",
-  },
-  {
-    step: 2,
-    title: "Pengisian Profil Satuan Inovasi",
-    subtitle: "Rancang Bangun & Latar Belakang",
-    description: "Lengkapi identitas inovasi mencakup nama inovasi, tahapan penerapan (inisiatif, uji coba, atau penerapan), urusan pemerintahan terkait, serta deskripsi rancang bangun minimal 300 kata.",
-  },
-  {
-    step: 3,
-    title: "Penginputan 36 Indikator SPD & SPP",
-    subtitle: "Pemenuhan Parameter Penilaian",
-    description: "Isi setiap parameter penilaian mulai dari aspek regulasi, ketersediaan SDM, dukungan anggaran, kecepatan inovasi, hingga kemudahan proses layanan dengan memilih opsi yang sesuai fakta.",
-  },
-  {
-    step: 4,
-    title: "Pengunggahan Bukti Evidensi & Pengiriman",
-    subtitle: "Validasi Berkas & Finalisasi",
-    description: "Unggah seluruh dokumen pendukung bertipe PDF dan tautan video implementasi. Lakukan pengecekan mandiri sebelum menekan tombol kirim untuk diverifikasi tim penilai daerah.",
-  },
+  { step: 1, title: "Login ke Sistem", subtitle: "Akses Akun", description: "Pengaju masuk menggunakan akun yang diberikan administrator." },
+  { step: 2, title: "Tambah Inovasi", subtitle: "Mulai Pengajuan", description: "Buka menu pengajuan inovasi dan mulai formulir baru." },
+  { step: 3, title: "Isi Identitas Inovasi", subtitle: "Profil Inovasi", description: "Lengkapi nama, tahapan, inisiator, klasifikasi, jenis, bentuk, lokasi, dan urusan pemerintahan." },
+  { step: 4, title: "Isi Kategori dan Periode", subtitle: "Kategori & Waktu", description: "Pilih Asta Cita, PKPN, tanggal uji coba, penerapan, serta pengembangan terbaru." },
+  { step: 5, title: "Isi Deskripsi Inovasi", subtitle: "Rancang Bangun", description: "Lengkapi rancang bangun minimal 300 kata, tujuan, manfaat, dan hasil inovasi." },
+  { step: 6, title: "Lengkapi Indikator", subtitle: "Bukti Pendukung", description: "Isi indikator SID dan unggah bukti pendukung. Data SPD dilengkapi pada tingkat pemerintah daerah." },
+  { step: 7, title: "Periksa Dokumen", subtitle: "Pengecekan Mandiri", description: "Pastikan seluruh isian wajib dan bukti pendukung sesuai dengan indikator." },
+  { step: 8, title: "Kirim untuk Verifikasi", subtitle: "Pengajuan", description: "Ajukan data untuk diperiksa sesuai alur persetujuan internal website." },
+  { step: 9, title: "Tindak Lanjut", subtitle: "Revisi", description: "Perbaiki isian apabila ada catatan pemeriksa, kemudian ajukan kembali." },
 ];
 
 export const checklistData: ChecklistItem[] = [
-  {
-    category: "Regulasi & Dasar Hukum Inovasi",
-    requirement: "Wajib",
-    description: "Salinan Peraturan Kepala Daerah (Perbup) atau Surat Keputusan Kepala Perangkat Daerah terkait penetapan inisiatif/penerapan inovasi.",
-    format: "PDF maks. 5 MB (Stempel & Tanda Tangan Basah/Elektronik)",
-  },
-  {
-    category: "Ketersediaan SDM & Anggaran Pelaksana",
-    requirement: "Wajib",
-    description: "SK Penetapan Tim Pelaksana Inovasi dan petikan Dokumen Pelaksanaan Anggaran (DPA/RKA) yang memuat pembiayaan terkait operasional inovasi.",
-    format: "PDF maks. 5 MB",
-  },
-  {
-    category: "Pedoman Teknis / Standar Operasional Prosedur (SOP)",
-    requirement: "Wajib",
-    description: "Buku petunjuk operasional atau SOP tertulis yang memandu alur implementasi inovasi secara baku dan dapat dipelajari secara berkelanjutan.",
-    format: "PDF maks. 10 MB",
-  },
-  {
-    category: "Hasil Pengukuran Kemanfaatan & Efisiensi",
-    requirement: "Wajib",
-    description: "Laporan komparasi data sebelum dan sesudah implementasi inovasi (contoh: pemangkasan durasi layanan dari 3 hari menjadi 15 menit, atau efisiensi anggaran belanja).",
-    format: "PDF tabel & grafik analitis maks. 5 MB",
-  },
-  {
-    category: "Laporan Survei Kepuasan Masyarakat (SKM)",
-    requirement: "Wajib",
-    description: "Hasil survei kepuasan penerima manfaat minimal 1 (satu) semester terakhir yang diolah menggunakan metodologi Permenpan RB yang berlaku.",
-    format: "PDF laporan rekapitulasi nilai SKM",
-  },
-  {
-    category: "Tautan Video Dokumentasi Penerapan (3-5 Menit)",
-    requirement: "Wajib",
-    description: "Video visualisasi alur layanan inovasi, testimoni masyarakat pengguna, dan kondisi nyata di lapangan dengan audio jernih dan resolusi minimal 720p HD.",
-    format: "Tautan YouTube (Unlisted/Public) atau Google Drive publik",
-  },
+  { category: "Nama inovasi daerah", requirement: "Wajib", description: "Nama resmi inovasi yang dilaporkan.", format: "Profil inovasi" },
+  { category: "Tahapan inovasi dan identitas inisiator", requirement: "Wajib", description: "Tahapan inovasi serta pihak yang menginisiasi.", format: "Profil inovasi" },
+  { category: "Klasifikasi, jenis, dan bentuk inovasi", requirement: "Wajib", description: "Lengkapi klasifikasi, jenis, dan bentuk inovasi.", format: "Profil inovasi" },
+  { category: "Titik koordinat lokasi pelaksanaan", requirement: "Wajib", description: "Lokasi pelaksanaan inovasi.", format: "Koordinat lokasi" },
+  { category: "Kategori Asta Cita dan PKPN", requirement: "Wajib", description: "Pilih kategori Asta Cita dan PKPN yang sesuai.", format: "Profil inovasi" },
+  { category: "Urusan pemerintahan utama", requirement: "Wajib", description: "Urusan pemerintahan yang terkait dengan inovasi.", format: "Profil inovasi" },
+  { category: "Tanggal uji coba dan penerapan awal", requirement: "Wajib", description: "Tanggal uji coba dan penerapan awal inovasi.", format: "Profil inovasi" },
+  { category: "Tanggal pengembangan terbaru", requirement: "Kondisional", description: "Diisi jika inovasi telah mengalami pengembangan.", format: "Profil inovasi" },
+  { category: "Rancang bangun inovasi minimal 300 kata", requirement: "Wajib", description: "Jelaskan rancang bangun inovasi secara lengkap.", format: "Teks minimal 300 kata" },
+  { category: "Tujuan, manfaat, dan hasil inovasi", requirement: "Wajib", description: "Lengkapi tujuan, manfaat, dan hasil inovasi.", format: "Profil inovasi" },
+  { category: "Dokumen anggaran", requirement: "Jika tersedia", description: "Dokumen pembiayaan inovasi.", format: "Dokumen pendukung" },
+  { category: "Dokumen profil bisnis", requirement: "Jika ada", description: "Profil bisnis inovasi jika tersedia.", format: "Dokumen pendukung" },
+  { category: "Sertifikat HAKI", requirement: "Jika tersedia", description: "Sertifikat hak kekayaan intelektual.", format: "Dokumen pendukung" },
+  { category: "Piagam atau SK penghargaan inovasi", requirement: "Jika tersedia", description: "Piagam atau SK penghargaan inovasi.", format: "Dokumen pendukung" },
 ];
 
 export const navLinks = [

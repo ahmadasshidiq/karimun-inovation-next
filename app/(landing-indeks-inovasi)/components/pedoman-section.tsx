@@ -11,9 +11,11 @@ type PedomanSectionProps = {
 export default function PedomanSection({ setModalData }: PedomanSectionProps) {
   const [activeTab, setActiveTab] = useState<"alur" | "checklist">("alur");
   const [showAllChecklist, setShowAllChecklist] = useState(false);
+  const [showAllSteps, setShowAllSteps] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState<number | null>(0);
 
   const displayedChecklist = showAllChecklist ? checklistData : checklistData.slice(0, 3);
+  const displayedSteps = showAllSteps ? stepsData : stepsData.slice(0, 4);
 
   return (
     <section id="pedoman" className="py-24 lg:py-32 bg-white">
@@ -34,7 +36,7 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
 
         {/* Tab Switcher - Refined */}
         <div className="flex justify-center mb-20">
-          <div className="inline-flex p-1.5 bg-slate-50 rounded-full border border-slate-200 shadow-inner">
+          <div className="inline-flex p-1.5 bg-slate-50 rounded-full border border-slate-200 shadow-inner gap-2">
             <button
               onClick={() => setActiveTab("alur")}
               className={`px-12 py-4 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] transition-all duration-700 ${
@@ -63,14 +65,14 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
           <div className="lg:col-span-8">
             {activeTab === "alur" ? (
               <div className="space-y-10">
-                {stepsData.map((s) => (
+                {displayedSteps.map((s) => (
                   <div
                     key={s.step}
                     data-landing-card
-                    className="group flex gap-10 p-10 rounded-[3rem] border border-slate-100 bg-slate-50 transition-all duration-700 hover:bg-white hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:border-slate-200"
+                    className="group flex gap-10 p-10 rounded-[var(--landing-radius-card)] border border-slate-100 bg-slate-50 transition-all duration-700 hover:bg-white hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:border-slate-200"
                   >
                     <div className="relative flex-shrink-0">
-                      <div className="w-20 h-20 rounded-3xl bg-white border border-slate-200 text-slate-950 font-bold text-3xl flex items-center justify-center transition-all duration-500 group-hover:bg-slate-950 group-hover:text-white group-hover:border-slate-950">
+                      <div className="w-20 h-20 rounded-[var(--landing-radius-card-sm)] bg-white border border-slate-200 text-slate-950 font-bold text-3xl flex items-center justify-center transition-all duration-500 group-hover:bg-slate-950 group-hover:text-white group-hover:border-slate-950">
                         {s.step}
                       </div>
                     </div>
@@ -88,6 +90,7 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
                     </div>
                   </div>
                 ))}
+                {stepsData.length > 4 ? <button onClick={() => setShowAllSteps((value) => !value)} className="w-full rounded-[2rem] border-2 border-dashed border-slate-200 py-8 text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400 transition-all duration-700 hover:border-[#FACC15] hover:text-[#FACC15]">{showAllSteps ? "LIHAT LEBIH SEDIKIT" : "LIHAT SEMUA LANGKAH"}</button> : null}
               </div>
             ) : (
               <div className="space-y-8">
@@ -95,14 +98,14 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
                   <div
                     key={index}
                     data-landing-card
-                    className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-sm transition-all duration-700 hover:shadow-2xl hover:border-slate-300"
+                    className="group overflow-hidden rounded-[var(--landing-radius-card)] border border-slate-100 bg-slate-50 transition-all duration-700 hover:border-slate-200 hover:bg-white hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)]"
                   >
                     <button
                       onClick={() => setActiveAccordion(activeAccordion === index ? null : index)}
-                      className="w-full flex items-center justify-between p-10 text-left group"
+                      className="group w-full flex items-center justify-between p-10 text-left"
                     >
                       <div className="flex items-center gap-8">
-                        <div className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center text-lg font-bold transition-all duration-700 ${
+                        <div className={`w-20 h-20 rounded-[var(--landing-radius-card-sm)] flex items-center justify-center text-3xl font-bold transition-all duration-700 ${
                           activeAccordion === index ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-400 group-hover:text-slate-950"
                         }`}>
                           {index + 1}
@@ -138,12 +141,12 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
                     )}
                   </div>
                 ))}
-                {!showAllChecklist && (
+                {checklistData.length > 3 && (
                   <button
-                    onClick={() => setShowAllChecklist(true)}
+                    onClick={() => setShowAllChecklist((value) => !value)}
                     className="w-full py-8 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400 font-semibold uppercase tracking-[0.3em] text-[10px] hover:border-[#FACC15] hover:text-[#FACC15] transition-all duration-700"
                   >
-                    LIHAT SEMUA DOKUMEN
+                    {showAllChecklist ? "LIHAT LEBIH SEDIKIT" : "LIHAT SEMUA DOKUMEN"}
                   </button>
                 )}
               </div>
@@ -152,7 +155,7 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
 
           {/* Sidebar Area */}
           <div className="lg:col-span-4 space-y-12">
-            <div className="bg-slate-950 rounded-[3rem] p-12 text-white space-y-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] relative overflow-hidden border border-slate-900">
+            <div className="bg-slate-950 rounded-[var(--landing-radius-card)] p-12 text-white space-y-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] relative overflow-hidden border border-slate-900">
               <div className="absolute top-0 right-0 w-48 h-48 bg-green-400/[0.06] rounded-full blur-[80px]"></div>
               <div className="space-y-6 relative z-10">
                 <div className="w-12 h-px bg-green-400"></div>
@@ -163,19 +166,19 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
               <p className="text-slate-400 text-base leading-relaxed font-normal relative z-10">
                 Dapatkan paket lengkap pedoman teknis, template dokumen, dan panduan resmi IID.
               </p>
-              <button
+              <a href="/documents/pedoman-iga-2026.pdf" download
                 onClick={() => setModalData({
                   title: "Unduh Pedoman Teknis IID",
                   meta: "Format: PDF • Ukuran: 3.8 MB",
                   content: "Buku Pedoman Teknis memuat seluruh petunjuk pengisian 36 indikator Satuan Inovasi Daerah (SPD & SPP) serta checklist kelengkapan dokumen sesuai standar Kementerian Dalam Negeri."
                 })}
-                className="group relative w-full py-6 rounded-full bg-[#FACC15] text-slate-950 font-semibold text-[10px] uppercase tracking-[0.3em] transition-all duration-700 hover:bg-[#EAB308] hover:scale-[1.02] shadow-2xl shadow-[#FACC15]/20"
+                className="group relative w-full py-6 px-4 rounded-[16px] bg-[#FACC15] text-slate-950 font-semibold text-[10px] uppercase transition-all duration-700 hover:bg-[#EAB308] hover:scale-[1.02] shadow-2xl shadow-[#FACC15]/20"
               >
                 Unduh Pedoman (PDF)
-              </button>
+              </a>
             </div>
 
-            <div className="bg-slate-50 rounded-[3rem] p-12 border border-slate-200 space-y-8">
+            <div className="bg-slate-50 rounded-[var(--landing-radius-card)] p-12 border border-slate-200 space-y-8">
               <div className="flex items-center gap-4">
                 <h4 className="text-[10px] font-semibold text-slate-950 uppercase tracking-[0.3em]">Bantuan Teknis</h4>
               </div>
@@ -184,7 +187,7 @@ export default function PedomanSection({ setModalData }: PedomanSectionProps) {
               </p>
               <Link
                 href="#"
-                className="group inline-flex items-center gap-6 text-slate-950 font-semibold text-[10px] uppercase tracking-[0.3em] transition-colors"
+                className="group inline-flex items-center gap-6 text-slate-950 font-semibold text-[10px] uppercase transition-colors"
               >
                 <span>HUBUNGI ADMIN</span>
                 <div className="w-12 h-px bg-slate-200 transition-all duration-500 group-hover:w-20 group-hover:bg-green-500"></div>

@@ -10,6 +10,26 @@
   border: 0;
 }
 
+/* Radius khusus kartu landing; tidak digunakan oleh hero atau komponen dashboard. */
+#berita a.group[class*="col-span-7"] > div:first-child,
+#berita .flex.gap-6.overflow-x-auto > a {
+  border-radius: var(--landing-radius-card);
+}
+
+#berita a.group.grid > div:first-child {
+  border-radius: var(--landing-radius-card-sm);
+}
+
+/* Kartu daftar berita pada rute publik /berita. */
+main.min-h-screen.bg-slate-50.pb-20 .grid.grid-cols-1.gap-12 > a {
+  border-radius: var(--landing-radius-card);
+}
+
+/* Radius khusus kartu landing; tidak digunakan oleh hero atau komponen dashboard. */
+#berita .hidden.grid > a > div:first-child,
+#berita .flex.gap-6.overflow-x-auto > a { border-radius: var(--landing-radius-card); }
+#berita .hidden.grid > div > a > div:first-child { border-radius: var(--landing-radius-card-sm); }
+
 .innovation-map-marker__dot,
 .innovation-map-marker__pulse {
   position: absolute;
@@ -84,6 +104,8 @@
 }
 
 :root {
+  --landing-radius-card: 1.25rem;
+  --landing-radius-card-sm: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

@@ -7,7 +7,7 @@ export default function CtaSection() {
   return (
     <section className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative bg-slate-950 rounded-[4rem] overflow-hidden px-8 py-24 sm:px-20 sm:py-32 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)] border border-slate-900 text-center">
+        <div className="relative bg-slate-950 rounded-[20px] overflow-hidden px-8 py-26 sm:px-26 sm:py-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)] border border-slate-900 text-center">
           {/* Refined decorative background */}
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(34,197,94,0.06),transparent)] pointer-events-none"></div>
           <div className="absolute -bottom-24 -right-24 w-[30rem] h-[30rem] bg-green-500/5 rounded-full blur-[120px] pointer-events-none"></div>
@@ -29,7 +29,7 @@ export default function CtaSection() {
             <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-8">
               <Link
                 href="/login"
-                className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-6 px-16 py-6 rounded-full bg-[#FACC15] text-slate-950 text-[10px] font-semibold uppercase tracking-[0.3em] transition-all duration-500 hover:bg-[#EAB308] hover:shadow-[0_20px_40px_-10px_rgba(250,204,21,0.35)]"
+                className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-6 px-16 py-6 rounded-full bg-[#FACC15] text-slate-950 text-[10px] font-semibold uppercase transition-all duration-500 hover:bg-[#EAB308] hover:shadow-[0_20px_40px_-10px_rgba(250,204,21,0.35)]"
               >
                 <span>Portal Pelaporan</span>
                 <svg className="w-4 h-4 transition-transform duration-500 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@ export default function CtaSection() {
               </Link>
               <Link
                 href="#"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-6 px-16 py-6 rounded-full bg-white/[0.03] border border-white/10 text-white text-[10px] font-semibold uppercase tracking-[0.3em] backdrop-blur-md transition-all duration-500 hover:bg-white/[0.08] hover:border-white/20"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-6 px-16 py-6 rounded-full bg-white/[0.03] border border-white/10 text-white text-[10px] font-semibold uppercase backdrop-blur-md transition-all duration-500 hover:bg-white/[0.08] hover:border-white/20"
               >
                 Panduan Sistem
               </Link>

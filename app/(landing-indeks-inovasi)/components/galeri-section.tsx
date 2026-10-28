@@ -49,7 +49,7 @@ export default function GaleriSection() {
               data-landing-card
               className="group relative flex flex-col transition-all duration-700"
             >
-              <div className="relative aspect-video w-full rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-200">
+              <div className="relative aspect-video w-full rounded-[var(--landing-radius-card)] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-200">
                 <Image
                   src={item.image}
                   alt={item.title}
