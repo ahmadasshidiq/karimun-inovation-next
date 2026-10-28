@@ -28,7 +28,7 @@ export default function FaqSection() {
             <div
               key={idx}
               data-landing-card
-              className="rounded-[2.5rem] border border-slate-200 bg-slate-50 overflow-hidden transition-all duration-700 hover:bg-white hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:border-slate-300"
+              className="rounded-[var(--landing-radius-card)] border border-slate-200 bg-slate-50 overflow-hidden transition-all duration-700 hover:bg-white hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:border-slate-300"
             >
               <button
                 onClick={() => setActiveIndex(activeIndex === idx ? null : idx)}
