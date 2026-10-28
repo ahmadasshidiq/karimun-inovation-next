@@ -20,7 +20,7 @@ export default function SambutanSection({ setModalData }: SambutanSectionProps) 
         <div className="relative flex flex-col lg:flex-row items-center gap-16 lg:gap-32">
           {/* Image Side */}
           <div className="relative w-full lg:w-1/2" data-landing-card>
-            <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] border-[1px] border-slate-200">
+            <div className="relative z-10 rounded-[var(--landing-radius-card)] overflow-hidden shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] border-[1px] border-slate-200">
               <div className="aspect-[4/5] relative bg-slate-50">
                 <Image
                   src={bupatiImage}
