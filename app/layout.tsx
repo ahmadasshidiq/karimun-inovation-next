@@ -16,24 +16,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const brandDescription = "Portal resmi pelaporan dan informasi Indeks Inovasi Daerah (IID) Pemerintah Kabupaten Karimun. Mendorong transformasi digital dan ekosistem inovasi Bumi Berazam.";
 
   return {
-    title: {
-      default: brandTitle,
-      template: `%s | ${brandTitle}`,
-    },
+    title: { default: brandTitle, template: `%s | ${brandTitle}` },
     description: brandDescription,
     keywords: ["Karimun", "Inovasi", "Indeks Inovasi Daerah", "IID", "Baperlitbang", "Pelayanan Publik"],
     authors: [{ name: "Baperlitbang Kabupaten Karimun" }],
     creator: "Pemerintah Kabupaten Karimun",
     publisher: "Pemerintah Kabupaten Karimun",
-    formatDetection: {
-      email: false,
-      address: false,
-      telephone: false,
-    },
+    formatDetection: { email: false, address: false, telephone: false },
     metadataBase: new URL("https://baperlitbang.karimunkab.go.id"),
-    alternates: {
-      canonical: "/",
-    },
+    alternates: { canonical: "/" },
     openGraph: {
       title: brandTitle,
       description: brandDescription,
@@ -41,50 +32,24 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: brandTitle,
       locale: "id_ID",
       type: "website",
-      images: [
-        {
-          url: "/images/hero-karimun-new.jpg",
-          width: 1200,
-          height: 630,
-          alt: brandTitle,
-        },
-      ],
+      images: [{ url: "/images/hero-karimun-new.jpg", width: 1200, height: 630, alt: brandTitle }],
     },
-    twitter: {
-      card: "summary_large_image",
-      title: brandTitle,
-      description: brandDescription,
-      images: ["/images/hero-karimun-new.jpg"],
-    },
+    twitter: { card: "summary_large_image", title: brandTitle, description: brandDescription, images: ["/images/hero-karimun-new.jpg"] },
     icons: {
       icon: [{ url: "/images/logo-karimun.webp", type: "image/webp" }],
       shortcut: "/images/logo-karimun.webp",
       apple: "/images/logo-karimun.webp",
     },
-    viewport: {
-      width: "device-width",
-      initialScale: 1,
-      maximumScale: 5,
-    },
+    viewport: { width: "device-width", initialScale: 1, maximumScale: 5 },
     robots: {
       index: true,
       follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
+      googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
     },
   };
 }
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await connection();
 
   return (
