@@ -58,7 +58,7 @@ export function AppCredit({ className, align = "left" }: AppCreditProps) {
               Inovasi Daerah {APP_NAME}
             </DialogTitle>
             <DialogDescription className="mt-1 text-sm text-slate-700">
-              Inovasi Daerah {APP_NAME} dianalisa, dirancang, dan dibangun oleh
+              {APP_NAME} dianalisa, dirancang, dan dibangun oleh
               PT Jaxer Teknologi Indonesia
             </DialogDescription>
           </div>
