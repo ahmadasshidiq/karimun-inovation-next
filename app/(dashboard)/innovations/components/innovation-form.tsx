@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import {
   ArrowLeft,
+  ClipboardList,
   ExternalLink,
   FileUp,
   Loader2,
@@ -45,7 +47,9 @@ type Props = {
   values: InnovationEditorValues;
   submitting: boolean;
   readOnly?: boolean;
+  canSend?: boolean;
   submitLabel?: string;
+  indicatorHref?: string;
   onChange: <K extends keyof InnovationEditorValues>(
     field: K,
     value: InnovationEditorValues[K],
@@ -58,11 +62,14 @@ export default function InnovationForm({
   values,
   submitting,
   readOnly = false,
+  canSend = true,
+  indicatorHref,
   onChange,
   onCancel,
   onSubmit,
 }: Props) {
   const [locating, setLocating] = useState(false);
+  const submitted = values.submissionStatus === "SUBMITTED";
   const selectedPkpnCluster = pkpnClusterOptions.find(
     (option) => option.name === values.pkpnCluster,
   );
@@ -283,7 +290,6 @@ export default function InnovationForm({
             )}
             <Field label="Proyek Strategis Nasional (PSN)">
               <Input
-                required
                 value={values.psn}
                 onChange={(e) => onChange("psn", e.target.value)}
                 className={innovationInputClass}
@@ -485,14 +491,33 @@ export default function InnovationForm({
             <ArrowLeft className="size-4" />
             Kembali
           </Button>
+          {indicatorHref ? (
+            <Button
+              nativeButton={false}
+              render={<Link href={indicatorHref} />}
+              className="h-9 min-w-36 gap-2 rounded-md bg-[#2362ee] px-5 text-xs font-semibold text-white hover:bg-blue-700"
+            >
+              <ClipboardList className="size-4" />
+              Indikator
+            </Button>
+          ) : null}
           {!readOnly && (
             <>
-              <Button type="submit" name="submissionStatus" value="DRAFT" disabled={submitting} variant="outline" className="h-9 rounded-md border-amber-500 px-4 text-xs font-semibold text-amber-600 hover:bg-amber-50">
-                Simpan Draft
-              </Button>
-              <Button type="submit" name="submissionStatus" value="SUBMITTED" disabled={submitting} className="h-9 min-w-36 rounded-md bg-[#2362ee] px-5 text-xs font-semibold text-white hover:bg-blue-700">
-                {submitting ? "Mengirim..." : "Kirim Data"}
-              </Button>
+              {/* Data yang sudah terkirim langsung diperbarui tanpa kembali ke draft. */}
+              {submitted ? null : (
+                <Button type="submit" name="submissionStatus" value="DRAFT" formNoValidate disabled={submitting} variant="outline" className="h-9 rounded-md border-amber-500 px-4 text-xs font-semibold text-amber-600 hover:bg-amber-50">
+                  Simpan Draft
+                </Button>
+              )}
+              {canSend ? (
+                <Button type="submit" name="submissionStatus" value="SUBMITTED" disabled={submitting} className="h-9 min-w-36 rounded-md bg-[#2362ee] px-5 text-xs font-semibold text-white hover:bg-blue-700">
+                  {submitting
+                    ? "Menyimpan..."
+                    : submitted
+                      ? "Simpan Perubahan"
+                      : "Kirim Data"}
+                </Button>
+              ) : null}
             </>
           )}
         </div>

@@ -128,6 +128,7 @@ export default function InnovationDetailPage({
               submitting={saving}
               readOnly={!editable}
               submitLabel="Simpan Perubahan"
+              indicatorHref={editable ? undefined : `/innovations/${id}/indicators`}
               onChange={onChange}
               onCancel={() => router.push(returnUrl)}
               onSubmit={(event) => {
