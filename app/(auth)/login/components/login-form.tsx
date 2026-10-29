@@ -4,6 +4,8 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
+import { AppCredit } from "@/components/app-credit";
+
 import type { LoginFormValues } from "../page.config";
 
 type LoginFormProps = {
@@ -117,6 +119,8 @@ export default function LoginForm({
             {isSubmitting ? "Memproses..." : "Masuk"}
           </button>
         </form>
+
+        <AppCredit className="mt-8" align="center" />
       </div>
     </div>
   );
