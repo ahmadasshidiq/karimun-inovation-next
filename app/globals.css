@@ -252,3 +252,10 @@ main.min-h-screen.bg-slate-50.pb-20 .grid.grid-cols-1.gap-12 > a {
     }
   }
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}

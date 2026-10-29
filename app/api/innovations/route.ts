@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import {
+  getSubmitBlockMessage,
+  resolveSubmissionStatus,
+} from "@/lib/innovation-completeness";
 import { innovationOwnerScope } from "@/lib/innovation-access";
+import { isCertificateEligible } from "@/lib/innovation-certificate";
 import {
   getAssessmentScore,
   getMissingMandatoryIndicators,
   MANDATORY_INDICATOR_IDS,
-  VIDEO_INDICATOR_ID,
+  MANDATORY_INDICATORS,
+  getInnovationVideo,
 } from "@/lib/innovation-indicator";
 import {
   ACTIVE_SUBMISSION_STATUSES,
@@ -32,35 +38,6 @@ const assessmentGroups = [
   { subject: "Dampak", indicators: [16, 17, 18], maximumScore: 8 },
   { subject: "Keberlanjutan", indicators: [19, 20], maximumScore: 6 },
 ];
-
-const documentUrl = (innovationId: string, documentId: string) =>
-  `/api/innovations/${innovationId}/indicators/${VIDEO_INDICATOR_ID}/documents/${documentId}`;
-
-// Video diambil dari dokumen indikator video; gambar pertama dipakai sebagai cover.
-const getInnovationVideo = (
-  innovationId: string,
-  assessments: {
-    indicatorId: number;
-    documents: { id: string; mimeType: string }[];
-  }[],
-) => {
-  const documents =
-    assessments.find(
-      (assessment) => assessment.indicatorId === VIDEO_INDICATOR_ID,
-    )?.documents ?? [];
-  const video = documents.find((document) =>
-    document.mimeType.startsWith("video/"),
-  );
-  if (!video) return null;
-  const poster = documents.find((document) =>
-    document.mimeType.startsWith("image/"),
-  );
-
-  return {
-    url: documentUrl(innovationId, video.id),
-    posterUrl: poster ? documentUrl(innovationId, poster.id) : null,
-  };
-};
 
 const dateOnly = (value: Date | null) =>
   value ? value.toISOString().slice(0, 10) : "";
@@ -185,6 +162,14 @@ export async function GET(request: NextRequest) {
           : "",
       awarded: Boolean(awardFile),
       video: getInnovationVideo(item.id, item.indicatorAssessments),
+      canPrintCertificate: isCertificateEligible({
+        submissionStatus: item.submissionStatus,
+        indicatorAssessments: item.indicatorAssessments.map((assessment) => ({
+          indicatorId: assessment.indicatorId,
+          reviewStatus: assessment.reviewStatus,
+          documentCount: assessment._count.documents,
+        })),
+      }),
       mandatoryIndicatorsFulfilled:
         MANDATORY_INDICATOR_IDS.length -
         getMissingMandatoryIndicators(
@@ -315,6 +300,15 @@ export async function POST(request: NextRequest) {
     if (!String(payload.name || "").trim()) {
       return NextResponse.json({ message: "Nama inovasi wajib diisi." }, { status: 400 });
     }
+    // Inovasi baru belum memiliki indikator, sehingga belum bisa langsung dikirim.
+    const newMissingIndicatorNames = Object.values(MANDATORY_INDICATORS);
+    const submitBlockMessage = getSubmitBlockMessage(
+      payload,
+      newMissingIndicatorNames,
+    );
+    if (payload.submissionStatus === "SUBMITTED" && submitBlockMessage) {
+      return NextResponse.json({ message: submitBlockMessage }, { status: 400 });
+    }
 
     const categories = ["budget", "business-profile", "haki", "award"];
     const storedFiles: Array<Record<string, string | number>> = [];
@@ -360,7 +354,10 @@ export async function POST(request: NextRequest) {
         latitude: nullableNumber(payload.latitude),
         longitude: nullableNumber(payload.longitude),
         status: payload.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
-        submissionStatus: ["DRAFT", "SUBMITTED", "INCOMPLETE"].includes(String(payload.submissionStatus)) ? String(payload.submissionStatus) : "INCOMPLETE",
+        submissionStatus: resolveSubmissionStatus(
+          payload,
+          newMissingIndicatorNames.length,
+        ),
         approvalStatus: "PENDING_REVIEW",
         approvalNote: null,
         approvedById: null,

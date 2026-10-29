@@ -6,6 +6,7 @@ import {
   FilePenLine,
   Flame,
   FolderInput,
+  Printer,
   Ribbon,
   Rocket,
   Send,
@@ -290,8 +291,9 @@ export type InnovationTableDto = {
   awardFileUrl: string;
   awarded: boolean;
   skor: number;
-  video: { url: string; posterUrl: string | null } | null;
+  video: { url: string | null; posterUrl: string | null } | null;
   mandatoryIndicatorsFulfilled: number;
+  canPrintCertificate: boolean;
   contractSubmitted: boolean;
   competitionSubmitted: boolean;
 };
@@ -368,6 +370,7 @@ export const initialFormValues: InnovationFormValues = {
   longitude: "",
   awardFileUrl: "",
   skor: 0,
+  canPrintCertificate: false,
 };
 
 export const summaryCards: SummaryCard[] = [
@@ -511,6 +514,7 @@ type RenderActionsProps = {
   onView: (id: string) => void;
   onEdit: (id: string) => void;
   onIndicators: (id: string) => void;
+  onPrintCertificate: (id: string) => void;
   onSubmitTrack: (id: string, track: SubmissionTrack) => void;
   onDelete: (id: string) => void | Promise<void>;
 };
@@ -580,6 +584,7 @@ export const renderActions = ({
   onView,
   onEdit,
   onIndicators,
+  onPrintCertificate,
   onSubmitTrack,
   onDelete,
 }: RenderActionsProps) => (
@@ -602,6 +607,14 @@ export const renderActions = ({
       tone="green"
       onClick={() => onIndicators(row.id)}
     />
+    {row.canPrintCertificate ? (
+      <ActionButton
+        label="Cetak Bukti"
+        icon={Printer}
+        tone="green"
+        onClick={() => onPrintCertificate(row.id)}
+      />
+    ) : null}
     {submissionAccess.contract || submissionAccess.competition ? (
       <ActionMenu
         label="Kirim"

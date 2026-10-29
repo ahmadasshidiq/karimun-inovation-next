@@ -291,6 +291,8 @@ export default function InnovationPage() {
                   ),
                 onIndicators: (id) =>
                   router.push(`/innovations/${id}/indicators`),
+                onPrintCertificate: (id) =>
+                  window.open(`/innovations/${id}/bukti`, "_blank"),
                 onSubmitTrack: handleSubmitTrack,
                 onDelete: handleDelete,
               })
