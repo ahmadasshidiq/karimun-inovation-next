@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import {
+  findMissingIndicatorNames,
+  getSubmitBlockMessage,
+  resolveSubmissionStatus,
+} from "@/lib/innovation-completeness";
 import { innovationOwnerScope } from "@/lib/innovation-access";
 import { prisma } from "@/lib/prisma";
 
@@ -20,6 +25,7 @@ const serialize = (item: Awaited<ReturnType<typeof findInnovation>>) => {
     pkpnCluster: item.pkpnCluster ?? "",
     pkpnSubCluster: item.pkpnSubCluster ?? "",
     governmentAffairs: item.governmentAffairs ?? "",
+    psn: item.psn ?? "",
     trialPeriod: item.trialPeriod?.toISOString().slice(0, 10) ?? "",
     implementationPeriod:
       item.implementationPeriod?.toISOString().slice(0, 10) ?? "",
@@ -72,6 +78,14 @@ export async function PUT(
 
   try {
     const payload = (await request.json()) as Record<string, unknown>;
+    if (!String(payload.name || "").trim()) {
+      return NextResponse.json({ message: "Nama inovasi wajib diisi." }, { status: 400 });
+    }
+    const missingIndicatorNames = await findMissingIndicatorNames(id);
+    const submitBlockMessage = getSubmitBlockMessage(payload, missingIndicatorNames);
+    if (payload.submissionStatus === "SUBMITTED" && submitBlockMessage) {
+      return NextResponse.json({ message: submitBlockMessage }, { status: 400 });
+    }
     const nullableDate = (value: unknown) =>
       value ? new Date(`${String(value)}T00:00:00.000Z`) : null;
     const nullableNumber = (value: unknown) =>
@@ -82,7 +96,10 @@ export async function PUT(
       data: {
         name: String(payload.name || "").trim(),
         status: payload.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
-        submissionStatus: ["DRAFT", "SUBMITTED", "INCOMPLETE"].includes(String(payload.submissionStatus)) ? String(payload.submissionStatus) : "INCOMPLETE",
+        submissionStatus: resolveSubmissionStatus(
+          payload,
+          missingIndicatorNames.length,
+        ),
         approvalStatus: "PENDING_REVIEW",
         approvalNote: null,
         approvedById: null,

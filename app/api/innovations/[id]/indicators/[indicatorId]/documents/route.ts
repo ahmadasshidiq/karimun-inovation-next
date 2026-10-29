@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
 import { innovationOwnerScope } from "@/lib/innovation-access";
 import { resetIndicatorReview } from "@/lib/innovation-indicator";
 import { ensureMinioBucket, getMinioClient, minioBucket, minioPublicUrl } from "@/lib/minio";
@@ -106,6 +107,7 @@ export async function POST(
         data: resetIndicatorReview,
       }),
     ]);
+    await syncInnovationSubmissionStatus(id);
 
     return NextResponse.json(
       { message: "Dokumen berhasil diunggah.", data: { id: document.id } },

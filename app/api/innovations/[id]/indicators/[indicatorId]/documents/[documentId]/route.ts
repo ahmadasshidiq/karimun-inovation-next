@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
+import {
+  innovationOwnerScope,
+  innovationVisibilityScope,
+} from "@/lib/innovation-access";
 import {
   canReviewIndicators,
+  VIDEO_INDICATOR_ID,
   resetIndicatorReview,
 } from "@/lib/innovation-indicator";
 import { getMinioClient, minioBucket } from "@/lib/minio";
@@ -22,9 +27,16 @@ const findDocument = (
       assessment: {
         innovationId: id,
         indicatorId: Number(indicatorId),
-        ...(user &&
-        !(allowReviewer && canReviewIndicators(user.role.permission))
-          ? { innovation: innovationOwnerScope(user) }
+        ...(user
+          ? {
+              innovation:
+                // Video indikator 20 ditampilkan di Database Inovasi dashboard.
+                allowReviewer &&
+                (canReviewIndicators(user.role.permission) ||
+                  Number(indicatorId) === VIDEO_INDICATOR_ID)
+                  ? innovationVisibilityScope(user)
+                  : innovationOwnerScope(user),
+            }
           : {}),
       },
     },
@@ -98,6 +110,7 @@ export async function DELETE(
         data: resetIndicatorReview,
       }),
     ]);
+    await syncInnovationSubmissionStatus(id);
     return NextResponse.json({ message: "Dokumen berhasil dihapus." });
   } catch (error) {
     console.error("Delete MinIO document failed", error);

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
+import {
+  innovationOwnerScope,
+  innovationVisibilityScope,
+} from "@/lib/innovation-access";
 import {
   canReviewIndicators,
   getAssessmentScore,
@@ -24,7 +28,10 @@ export async function GET(
       innovationId: id,
       innovation: {
         deletedAt: null,
-        ...(canReview ? {} : innovationOwnerScope(user)),
+        // Verifikator tidak dapat membuka indikator draft instansi lain.
+        ...(canReview
+          ? innovationVisibilityScope(user)
+          : innovationOwnerScope(user)),
       },
     },
     include: {
@@ -112,6 +119,7 @@ export async function PUT(
       ...(current?.parameter !== parameter ? resetIndicatorReview : {}),
     },
   });
+  await syncInnovationSubmissionStatus(id);
 
   return NextResponse.json({ message: "Parameter berhasil disimpan.", data: assessment });
 }

@@ -79,6 +79,8 @@ export default function CreateInnovationPage() {
           <InnovationForm
             values={values}
             submitting={submitting}
+            // Indikator wajib baru bisa diisi setelah inovasi tersimpan.
+            canSend={false}
             onChange={onChange}
             onCancel={() => router.push(`/innovations?category=${encodeURIComponent(values.category)}`)}
             onSubmit={onSubmit}

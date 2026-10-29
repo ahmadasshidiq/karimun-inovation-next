@@ -2,7 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CircleCheck, Send } from "lucide-react";
 
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ export default function InnovationIndicatorsPage({
   const { id } = use(params);
   const [name, setName] = useState("Inovasi");
   const [stage, setStage] = useState("Inisiatif");
+  const [submissionStatus, setSubmissionStatus] = useState("");
+  const [sending, setSending] = useState(false);
   const [selections, setSelections] = useState<Record<number, string>>({});
   const [documents, setDocuments] = useState<Record<number, IndicatorDocument[]>>({});
   const [reviews, setReviews] = useState<Record<number, IndicatorReview>>({});
@@ -38,6 +40,46 @@ export default function InnovationIndicatorsPage({
     action: IndicatorReviewValues["action"];
   } | null>(null);
   const [savingReview, setSavingReview] = useState(false);
+
+  // Status pengiriman ikut berubah setiap kali indikator/dokumen berubah.
+  const fetchInnovation = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/innovations/${id}`, {
+        cache: "no-store",
+      });
+      const payload = await parseApiResponse<{
+        data?: { name?: string; stage?: string; submissionStatus?: string };
+      }>(response, "Gagal memuat inovasi");
+      setName(payload.data?.name || "Inovasi");
+      setStage(payload.data?.stage || "-");
+      setSubmissionStatus(payload.data?.submissionStatus || "");
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title: error instanceof Error ? error.message : "Gagal memuat inovasi",
+      });
+    }
+  }, [id]);
+
+  const handleSend = useCallback(async () => {
+    try {
+      setSending(true);
+      const response = await fetch(`/api/innovations/${id}/send`, {
+        method: "POST",
+      });
+      await parseApiResponse(response, "Gagal mengirim data inovasi");
+      toast.add({ type: "success", title: "Data inovasi berhasil dikirim" });
+      await fetchInnovation();
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title:
+          error instanceof Error ? error.message : "Gagal mengirim data inovasi",
+      });
+    } finally {
+      setSending(false);
+    }
+  }, [fetchInnovation, id]);
 
   const fetchIndicators = useCallback(async () => {
     const response = await fetch(`/api/innovations/${id}/indicators`, {
@@ -59,38 +101,9 @@ export default function InnovationIndicatorsPage({
     setDocuments(nextDocuments);
     setReviews(nextReviews);
     setCanReview(Boolean(payload.canReview));
-  }, [id]);
+    void fetchInnovation();
+  }, [fetchInnovation, id]);
 
-  useEffect(() => {
-    void fetch(`/api/innovations/${id}`)
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message);
-        setName(result.data.name || "Inovasi");
-        const now = new Date();
-        const implementation = result.data.implementationPeriod
-          ? new Date(result.data.implementationPeriod)
-          : null;
-        const trial = result.data.trialPeriod
-          ? new Date(result.data.trialPeriod)
-          : null;
-        setStage(
-          implementation && implementation <= now
-            ? "Penerapan"
-            : trial && trial <= now
-              ? "Uji Coba"
-              : "Inisiatif",
-        );
-      })
-      .catch((error) =>
-        toast.add({
-          title: "Gagal memuat inovasi",
-          description:
-            error instanceof Error ? error.message : "Silakan coba kembali.",
-          type: "error",
-        }),
-      );
-  }, [id]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -243,7 +256,7 @@ export default function InnovationIndicatorsPage({
             description={`Inovasi Perangkat Daerah > ${name}`}
           />
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 nativeButton={false}
                 variant="outline"
@@ -253,6 +266,28 @@ export default function InnovationIndicatorsPage({
                 <ArrowLeft />
                 Kembali
               </Button>
+              {submissionStatus === "SUBMITTED" ? (
+                <span className="inline-flex h-10 items-center gap-2 rounded-md bg-emerald-100 px-4 text-sm font-semibold text-emerald-700">
+                  <CircleCheck className="size-4" />
+                  Data Terkirim
+                </span>
+              ) : submissionStatus ? (
+                <Button
+                  type="button"
+                  disabled={sending || submissionStatus !== "DRAFT"}
+                  onClick={() => void handleSend()}
+                  className="h-10 gap-2 bg-[#2362ee] px-4 font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300"
+                >
+                  <Send className="size-4" />
+                  {sending ? "Mengirim..." : "Kirim Data"}
+                </Button>
+              ) : null}
+              {submissionStatus === "INCOMPLETE" ? (
+                <p className="text-xs text-slate-500 sm:basis-full">
+                  Lengkapi data inovasi dan 5 indikator wajib (*) untuk
+                  mengirim data.
+                </p>
+              ) : null}
             </div>
             <IndicatorSummary
               stage={stage}

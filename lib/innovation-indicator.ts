@@ -68,3 +68,33 @@ export const getMissingMandatoryIndicators = (
 
 // Indikator "Video inovasi daerah": berisi video penerapan dan cover thumbnail.
 export const VIDEO_INDICATOR_ID = 20;
+
+const documentUrl = (innovationId: string, documentId: string) =>
+  `/api/innovations/${innovationId}/indicators/${VIDEO_INDICATOR_ID}/documents/${documentId}`;
+
+// Video diambil dari dokumen indikator video; gambar pertama dipakai sebagai cover.
+// Jika indikator hanya berisi gambar, url bernilai null dan gambar ditampilkan saja.
+export const getInnovationVideo = (
+  innovationId: string,
+  assessments: {
+    indicatorId: number;
+    documents: { id: string; mimeType: string }[];
+  }[],
+) => {
+  const documents =
+    assessments.find(
+      (assessment) => assessment.indicatorId === VIDEO_INDICATOR_ID,
+    )?.documents ?? [];
+  const video = documents.find((document) =>
+    document.mimeType.startsWith("video/"),
+  );
+  const poster = documents.find((document) =>
+    document.mimeType.startsWith("image/"),
+  );
+  if (!video && !poster) return null;
+
+  return {
+    url: video ? documentUrl(innovationId, video.id) : null,
+    posterUrl: poster ? documentUrl(innovationId, poster.id) : null,
+  };
+};

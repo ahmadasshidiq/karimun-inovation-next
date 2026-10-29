@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { innovationVisibilityScope } from "@/lib/innovation-access";
+import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
 import { INDICATOR_REVIEW_STATUSES } from "@/lib/innovation-indicator";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
@@ -43,7 +45,7 @@ export async function PATCH(
         where: {
           innovationId: id,
           indicatorId,
-          innovation: { deletedAt: null },
+          innovation: { deletedAt: null, ...innovationVisibilityScope(user) },
         },
         select: { id: true, _count: { select: { documents: true } } },
       })
@@ -73,6 +75,7 @@ export async function PATCH(
       reviewedAt: new Date(),
     },
   });
+  await syncInnovationSubmissionStatus(id);
 
   return NextResponse.json({
     message:
