@@ -8,15 +8,17 @@ import {
   Rocket,
   Sparkles,
   Target,
-  Waves,
 } from "lucide-react";
 
 import type { DefaultColumnFormat } from "@/components/dynamic-page";
 import {
   ActionButton,
+  FilterPanel,
+  FilterSearch,
+  FilterSelect,
   TableActions,
+  TableToolbar,
 } from "@/components/table-elements";
-import { Badge } from "@/components/ui/badge";
 
 export type CountdownValue = {
   days: string;
@@ -36,35 +38,13 @@ export type DashboardSummary = {
   initiative: number;
   trial: number;
   implementation: number;
-  award: number;
-  totalScore: number;
-  averageScore: number;
-};
-
-export type DashboardMapPoint = {
-  id: string;
-  name: string;
-  institution: string;
-  latitude: number;
-  longitude: number;
-};
-
-export type DashboardApiData = {
-  summary: DashboardSummary;
-  mapData: DashboardMapPoint[];
-  assessmentData: DashboardAssessmentItem[];
+  indexScore: number;
+  indexYear: number | null;
 };
 
 export type DashboardConfigurationData = {
   countdownTarget: string;
   countdownActive: boolean;
-};
-
-export type DashboardAssessmentItem = {
-  subject: string;
-  value: number;
-  score: number;
-  maximumScore: number;
 };
 
 export type AnnouncementItem = {
@@ -81,16 +61,17 @@ export const formatScore = (value: number) =>
   }).format(value);
 
 export const getStatistics = (summary: DashboardSummary): StatisticItem[] => [
-  { title: "Skor Indeks Inovasi", value: formatScore(summary.totalScore), icon: Target },
   {
-    title: "Indeks Rata-rata Daerah Perbatasan",
-    value: formatScore(summary.averageScore),
-    icon: Waves,
+    title: summary.indexYear
+      ? `Skor Indeks Inovasi ${summary.indexYear}`
+      : "Skor Indeks Inovasi",
+    value: formatScore(summary.indexScore),
+    icon: Target,
   },
   { title: "Total Inovasi", value: String(summary.total), icon: Sparkles },
-  { title: "Inovasi Baru", value: String(summary.initiative), icon: Clock3 },
-  { title: "Inovasi Uji Coba", value: String(summary.trial), icon: Flame },
-  { title: "Inovasi Penerapan", value: String(summary.implementation), icon: Rocket },
+  { title: "Inisiatif", value: String(summary.initiative), icon: Clock3 },
+  { title: "Uji Coba", value: String(summary.trial), icon: Flame },
+  { title: "Penerapan", value: String(summary.implementation), icon: Rocket },
 ];
 
 export const initialDashboardSummary: DashboardSummary = {
@@ -98,9 +79,8 @@ export const initialDashboardSummary: DashboardSummary = {
   initiative: 0,
   trial: 0,
   implementation: 0,
-  award: 0,
-  totalScore: 0,
-  averageScore: 0,
+  indexScore: 0,
+  indexYear: null,
 };
 
 export type InnovationIndexPoint = {
@@ -119,6 +99,7 @@ export type DashboardStatisticsResponse = {
   data?: {
     innovationIndex?: InnovationIndexPoint[];
     innovationsPerYear?: InnovationYearPoint[];
+    summary?: DashboardSummary;
   };
   message?: string;
 };
@@ -131,7 +112,7 @@ export type AssessmentResult = {
   reviewNote: string | null;
 };
 
-export type AssessedInnovationDto = {
+export type DashboardInnovationDto = {
   id: string;
   number: number;
   name: string;
@@ -147,15 +128,69 @@ export type AssessedInnovationDto = {
   score: number;
   contract: AssessmentResult | null;
   competition: AssessmentResult | null;
+  video: { url: string | null; posterUrl: string | null } | null;
 };
 
-export type AssessedInnovationListResponse = {
-  data?: AssessedInnovationDto[];
+export type DashboardInnovationOptionDto = {
+  id: string;
+  name: string;
+};
+
+export type DashboardInnovationOptions = {
+  institutions: DashboardInnovationOptionDto[];
+  governmentAffairs: string[];
+  innovationForms: string[];
+  types: string[];
+  stages: string[];
+  thematics: string[];
+  pkpnClusters: string[];
+  psns: string[];
+};
+
+export type DashboardInnovationListResponse = {
+  data?: DashboardInnovationDto[];
   total?: number;
   message?: string;
+  canOpenDetail?: boolean;
+  options?: Partial<DashboardInnovationOptions>;
 };
 
-export const ASSESSED_ITEMS_PER_PAGE = 5;
+export type DashboardInnovationFilters = {
+  search: string;
+  institutionId: string;
+  governmentAffairs: string;
+  innovationForm: string;
+  type: string;
+  stage: string;
+  thematic: string;
+  pkpnCluster: string;
+  psn: string;
+};
+
+export const INNOVATION_ITEMS_PER_PAGE = 10;
+
+export const initialInnovationFilters: DashboardInnovationFilters = {
+  search: "",
+  institutionId: "all",
+  governmentAffairs: "all",
+  innovationForm: "all",
+  type: "all",
+  stage: "all",
+  thematic: "all",
+  pkpnCluster: "all",
+  psn: "all",
+};
+
+export const initialInnovationOptions: DashboardInnovationOptions = {
+  institutions: [],
+  governmentAffairs: [],
+  innovationForms: [],
+  types: [],
+  stages: [],
+  thematics: [],
+  pkpnClusters: [],
+  psns: [],
+};
 
 export const assessmentStatusBadges: Record<
   AssessmentResult["status"],
@@ -166,18 +201,10 @@ export const assessmentStatusBadges: Record<
   RETURNED: { label: "Dikembalikan", className: "bg-amber-100 text-amber-700" },
 };
 
-const renderResult = (result: AssessmentResult | null) => {
-  if (!result) return <span className="text-slate-400">Belum diajukan</span>;
-  const badge = assessmentStatusBadges[result.status];
-  return (
-    <Badge className={badge.className}>
-      {badge.label}
-      {result.periodName ? ` · ${result.periodName}` : ""}
-    </Badge>
-  );
-};
+const toOptions = (values: string[]) =>
+  values.map((value) => ({ value, label: value }));
 
-export const assessedColumnFormats: DefaultColumnFormat<AssessedInnovationDto>[] =
+export const innovationColumnFormats: DefaultColumnFormat<DashboardInnovationDto>[] =
   [
     { key: "number", title: "#", formatter: (value) => String(value || "-") },
     {
@@ -185,7 +212,11 @@ export const assessedColumnFormats: DefaultColumnFormat<AssessedInnovationDto>[]
       title: "Nama Inovasi",
       textClassName: "min-w-64 font-semibold text-slate-900!",
     },
-    { key: "institution", title: "Perangkat Daerah" },
+    {
+      key: "institution",
+      title: "Unit Inovasi",
+      formatter: (value) => String(value || "-"),
+    },
     {
       key: "stage",
       title: "Tahapan",
@@ -196,24 +227,120 @@ export const assessedColumnFormats: DefaultColumnFormat<AssessedInnovationDto>[]
       title: "Skor Kematangan",
       formatter: (value) => formatScore(Number(value || 0)),
     },
-    {
-      key: "contract",
-      title: "Perjanjian Kinerja",
-      formatter: (_value, row) => renderResult(row.contract),
-    },
-    {
-      key: "competition",
-      title: "Lomba Inovasi",
-      formatter: (_value, row) => renderResult(row.competition),
-    },
   ];
 
-export const renderAssessedActions = ({
+type InnovationToolbarProps = {
+  onToggleFilter: () => void;
+  activeFilterCount: number;
+};
+
+export const innovationToolbar = (props: InnovationToolbarProps) => (
+  <div className="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 className="text-sm font-semibold text-neutral-950">
+        Database Inovasi
+      </h2>
+      <p className="mt-1 text-xs text-slate-500">
+        Seluruh inovasi se-Kabupaten Karimun yang diinput ke dalam aplikasi.
+      </p>
+    </div>
+    <TableToolbar {...props} />
+  </div>
+);
+
+type InnovationFilterPanelProps = {
+  filters: DashboardInnovationFilters;
+  setFilter: (key: keyof DashboardInnovationFilters, value: string) => void;
+  applyFilters: () => void;
+  clearFilters: () => void;
+  options: DashboardInnovationOptions;
+};
+
+export const innovationFilterPanel = ({
+  filters,
+  setFilter,
+  applyFilters,
+  clearFilters,
+  options,
+}: InnovationFilterPanelProps) => (
+  <FilterPanel
+    title="Filter Inovasi Daerah"
+    onApply={applyFilters}
+    onReset={clearFilters}
+  >
+    <FilterSearch
+      value={filters.search}
+      onChange={(value) => setFilter("search", value)}
+      placeholder="Cari nama inovasi..."
+    />
+    <FilterSelect
+      label="Unit Inovasi"
+      allLabel="Semua Unit Inovasi"
+      value={filters.institutionId}
+      options={options.institutions.map((institution) => ({
+        value: institution.id,
+        label: institution.name,
+      }))}
+      onChange={(value) => setFilter("institutionId", value)}
+    />
+    <FilterSelect
+      label="Urusan"
+      allLabel="Semua Urusan"
+      value={filters.governmentAffairs}
+      options={toOptions(options.governmentAffairs)}
+      onChange={(value) => setFilter("governmentAffairs", value)}
+    />
+    <FilterSelect
+      label="Bentuk Inovasi"
+      allLabel="Semua Bentuk Inovasi"
+      value={filters.innovationForm}
+      options={toOptions(options.innovationForms)}
+      onChange={(value) => setFilter("innovationForm", value)}
+    />
+    <FilterSelect
+      label="Jenis Inovasi"
+      allLabel="Semua Jenis Inovasi"
+      value={filters.type}
+      options={toOptions(options.types)}
+      onChange={(value) => setFilter("type", value)}
+    />
+    <FilterSelect
+      label="Tahapan Inovasi"
+      allLabel="Semua Tahapan"
+      value={filters.stage}
+      options={toOptions(options.stages)}
+      onChange={(value) => setFilter("stage", value)}
+    />
+    <FilterSelect
+      label="Sinergi Asta Cita"
+      allLabel="Semua Asta Cita"
+      value={filters.thematic}
+      options={toOptions(options.thematics)}
+      onChange={(value) => setFilter("thematic", value)}
+    />
+    <FilterSelect
+      label="Sinergi PKPN"
+      allLabel="Semua Klaster PKPN"
+      value={filters.pkpnCluster}
+      options={toOptions(options.pkpnClusters)}
+      onChange={(value) => setFilter("pkpnCluster", value)}
+    />
+    <FilterSelect
+      label="Sinergi Pro-SN"
+      allLabel="Semua Pro-SN"
+      value={filters.psn}
+      options={toOptions(options.psns)}
+      onChange={(value) => setFilter("psn", value)}
+    />
+  </FilterPanel>
+);
+
+export const renderInnovationActions = ({
   row,
   onPreview,
 }: {
-  row: AssessedInnovationDto;
-  onPreview: (innovation: AssessedInnovationDto) => void;
+  row: DashboardInnovationDto;
+  onPreview: (innovation: DashboardInnovationDto) => void;
 }) => (
   <TableActions>
     <ActionButton

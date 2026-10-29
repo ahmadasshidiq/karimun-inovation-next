@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, FilePenLine, Trophy } from "lucide-react";
+import { ExternalLink, FilePenLine, PlayCircle, Trophy } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,12 +19,13 @@ import { formatDateId } from "@/lib/helper/date";
 import {
   assessmentStatusBadges,
   formatScore,
-  type AssessedInnovationDto,
+  type DashboardInnovationDto,
   type AssessmentResult,
 } from "../page.config";
 
 type AssessedInnovationPreviewProps = {
-  innovation: AssessedInnovationDto;
+  innovation: DashboardInnovationDto;
+  canOpenDetail: boolean;
   onClose: () => void;
 };
 
@@ -84,6 +85,7 @@ function ResultCard({
 
 export default function AssessedInnovationPreview({
   innovation,
+  canOpenDetail,
   onClose,
 }: AssessedInnovationPreviewProps) {
   return (
@@ -98,7 +100,7 @@ export default function AssessedInnovationPreview({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[calc(90vh-170px)] space-y-6 overflow-y-auto px-6 py-6">
+        <div className="max-h-[calc(90vh-190px)] space-y-6 overflow-y-auto px-6 py-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <InfoItem label="Tahapan" value={innovation.stage} />
             <InfoItem label="Bentuk Inovasi" value={innovation.innovationForm} />
@@ -128,7 +130,7 @@ export default function AssessedInnovationPreview({
 
           <div>
             <p className="mb-3 text-sm font-bold text-slate-900">
-              Hasil Penilaian
+              Keterangan
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <ResultCard
@@ -143,6 +145,33 @@ export default function AssessedInnovationPreview({
               />
             </div>
           </div>
+
+          <div>
+            <p className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
+              <PlayCircle className="size-4 text-slate-500" />
+              Video Inovasi Daerah
+            </p>
+            {innovation.video?.url ? (
+              <video
+                src={innovation.video.url}
+                poster={innovation.video.posterUrl ?? undefined}
+                controls
+                preload="none"
+                className="aspect-video w-full rounded-xl bg-black"
+              />
+            ) : innovation.video?.posterUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- URL presigned dari MinIO, bukan aset statis.
+              <img
+                src={innovation.video.posterUrl}
+                alt={innovation.name}
+                className="aspect-video w-full rounded-xl bg-slate-100 object-contain"
+              />
+            ) : (
+              <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500">
+                Belum ada video inovasi.
+              </p>
+            )}
+          </div>
         </div>
 
         <DialogFooter className="border-t border-slate-200 px-6 py-4">
@@ -154,14 +183,16 @@ export default function AssessedInnovationPreview({
           >
             Tutup
           </Button>
-          <Button
-            nativeButton={false}
-            render={<Link href={`/innovations/${innovation.id}`} />}
-            className="h-10 gap-2 bg-[#2362ee] px-6 font-semibold text-white hover:bg-blue-700"
-          >
-            <ExternalLink className="size-4" />
-            Buka Detail Inovasi
-          </Button>
+          {canOpenDetail ? (
+            <Button
+              nativeButton={false}
+              render={<Link href={`/innovations/${innovation.id}`} />}
+              className="h-10 gap-2 bg-[#2362ee] px-6 font-semibold text-white hover:bg-blue-700"
+            >
+              <ExternalLink className="size-4" />
+              Buka Detail Inovasi
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

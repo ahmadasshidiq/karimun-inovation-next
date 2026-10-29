@@ -1,28 +1,17 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { memo, useState } from "react";
-import { Clock3, Mail, MapPinned, Megaphone, PieChart } from "lucide-react";
-import {
-  PolarAngleAxis,
-  PolarGrid,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-} from "recharts";
+import { useState, type ReactNode } from "react";
+import { Clock3, Mail, Megaphone } from "lucide-react";
 
 import {
-  assessedColumnFormats,
+  innovationColumnFormats,
   getStatistics,
-  renderAssessedActions,
+  renderInnovationActions,
   type AnnouncementItem,
-  type AssessedInnovationDto,
+  type DashboardInnovationDto,
   type InnovationIndexPoint,
   type InnovationYearPoint,
-  type DashboardAssessmentItem,
   type CountdownValue,
-  type DashboardMapPoint,
   type DashboardSummary,
 } from "../page.config";
 import { AppPageHeader, useSessionUser } from "@/components/app-sidebar";
@@ -37,32 +26,23 @@ import {
 
 import { InnovationIndexChart, InnovationYearChart } from "./innovation-charts";
 
-const InnovationMap = dynamic(() => import("./innovation-map"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex size-full items-center justify-center bg-slate-100 text-xs text-slate-500">
-      Memuat peta inovasi...
-    </div>
-  ),
-});
-
 type DashboardContentProps = {
   countdown: CountdownValue;
   summary: DashboardSummary;
-  mapPoints: DashboardMapPoint[];
-  assessmentData: DashboardAssessmentItem[];
   announcements: AnnouncementItem[];
   countdownActive: boolean;
   innovationIndex: InnovationIndexPoint[];
   innovationsPerYear: InnovationYearPoint[];
-  assessed: {
-    items: AssessedInnovationDto[];
+  innovations: {
+    items: DashboardInnovationDto[];
     total: number;
     currentPage: number;
     totalPages: number;
     loading: boolean;
     onPageChange: (page: number) => void;
-    onPreview: (innovation: AssessedInnovationDto) => void;
+    onPreview: (innovation: DashboardInnovationDto) => void;
+    toolbar: ReactNode;
+    filterPanel: ReactNode;
   };
 };
 
@@ -131,13 +111,13 @@ function StatisticsGrid({ summary }: { summary: DashboardSummary }) {
   const statistics = getStatistics(summary);
 
   return (
-    <section className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-      {statistics.map((item) => {
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+      {statistics.map((item, index) => {
         const Icon = item.icon;
         return (
           <article
             key={item.title}
-            className="relative min-h-28 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5"
+            className={`relative min-h-28 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 ${index === 0 ? "col-span-2 sm:col-span-1" : ""}`}
           >
             <p className="max-w-[78%] text-[11px] font-semibold leading-tight text-neutral-800 sm:text-[12px]">
               {item.title}
@@ -153,25 +133,6 @@ function StatisticsGrid({ summary }: { summary: DashboardSummary }) {
   );
 }
 
-function MapPanel({ points }: { points: DashboardMapPoint[] }) {
-  return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-3 sm:p-4">
-      <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <MapPinned className="size-5" />
-        Peta Inovasi
-      </h2>
-      <div className="relative isolate aspect-[4/3] min-h-52 overflow-hidden rounded-lg bg-slate-800 sm:aspect-[16/8] sm:min-h-64">
-        <InnovationMap points={points} />
-        {points.length === 0 && (
-          <div className="pointer-events-none absolute inset-x-4 bottom-4 z-[500] rounded-lg border border-white/30 bg-slate-950/75 px-3 py-2 text-center text-xs text-white backdrop-blur-sm">
-            Belum ada inovasi dengan koordinat yang valid.
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function AnnouncementPanel({
   announcements,
 }: {
@@ -181,12 +142,12 @@ function AnnouncementPanel({
     useState<AnnouncementItem | null>(null);
 
   return (
-    <section className="min-h-[320px] rounded-xl border border-neutral-200 bg-white p-4 lg:min-h-0">
-      <h2 className="mb-5 flex items-center gap-2 text-sm font-semibold">
+    <section className="flex max-h-[420px] flex-col rounded-xl border border-neutral-200 bg-white p-4 xl:absolute xl:inset-0 xl:max-h-none">
+      <h2 className="mb-5 flex shrink-0 items-center gap-2 text-sm font-semibold">
         <Megaphone className="size-5" />
         Pengumuman
       </h2>
-      <div className="space-y-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
         {announcements.map((announcement) => (
           <button
             type="button"
@@ -252,71 +213,14 @@ function AnnouncementPanel({
   );
 }
 
-const AssessmentPanel = memo(function AssessmentPanel({
-  data,
-}: {
-  data: DashboardAssessmentItem[];
-}) {
-  return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-4">
-      <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-        <PieChart className="size-5" />
-        Aspek Penilaian
-      </h2>
-      <div className="h-[280px] min-h-[255px] min-w-0 w-full lg:h-[255px]">
-        <ResponsiveContainer
-          width="100%"
-          height="100%"
-          initialDimension={{ width: 320, height: 255 }}
-        >
-          <RadarChart data={data} outerRadius="60%">
-            <PolarGrid stroke="#d9e2ef" />
-            <PolarAngleAxis
-              dataKey="subject"
-              tick={{ fill: "#65758b", fontSize: 8, fontWeight: 600 }}
-            />
-            <RechartsTooltip
-              cursor={false}
-              contentStyle={{
-                borderRadius: 10,
-                border: "1px solid #dbeafe",
-                boxShadow: "0 8px 24px rgba(15, 23, 42, 0.12)",
-                fontSize: 12,
-              }}
-              formatter={(_value, _name, item) => {
-                const payload = item.payload as DashboardAssessmentItem;
-                return [
-                  `${payload.score.toFixed(2)} / ${payload.maximumScore.toFixed(2)} (${payload.value.toFixed(1)}%)`,
-                  "Skor",
-                ];
-              }}
-              labelFormatter={(label) => String(label)}
-            />
-            <Radar
-              dataKey="value"
-              stroke="#146be8"
-              strokeWidth={4}
-              fill="#4191ff"
-              fillOpacity={0.28}
-              isAnimationActive={false}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
-  );
-});
-
 export default function DashboardContent({
   countdown,
   summary,
-  mapPoints,
-  assessmentData,
   announcements,
   countdownActive,
   innovationIndex,
   innovationsPerYear,
-  assessed,
+  innovations,
 }: DashboardContentProps) {
   const { user } = useSessionUser();
 
@@ -336,49 +240,36 @@ export default function DashboardContent({
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2.6fr)_minmax(270px,1fr)]">
-        <div className="space-y-4">
-            {countdownActive ? (
-              <CountdownBanner countdown={countdown} active />
-            ) : null}
-          <StatisticsGrid summary={summary} />
-          <MapPanel points={mapPoints} />
-        </div>
-        <aside className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 lg:grid-rows-[1fr_auto]">
-          <AnnouncementPanel announcements={announcements} />
-          <AssessmentPanel data={assessmentData} />
-        </aside>
+      <div className="space-y-4">
+        {countdownActive ? (
+          <CountdownBanner countdown={countdown} active />
+        ) : null}
+        <StatisticsGrid summary={summary} />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <InnovationIndexChart data={innovationIndex} />
         <InnovationYearChart data={innovationsPerYear} />
+        <aside className="relative lg:col-span-2 xl:col-span-1">
+          <AnnouncementPanel announcements={announcements} />
+        </aside>
       </div>
 
       <DynamicPage
         className="mt-4 rounded-xl p-4"
-        toolbar={
-          <div>
-            <h2 className="text-sm font-semibold text-neutral-950">
-              Inovasi yang Sudah Dinilai
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Inovasi yang pernah diajukan ke Perjanjian Kinerja atau Lomba
-              Inovasi beserta hasil penilaiannya.
-            </p>
-          </div>
-        }
-        columns={assessedColumnFormats}
-        items={assessed.items}
-        total={assessed.total}
-        currentPage={assessed.currentPage}
-        totalPages={assessed.totalPages}
-        loading={assessed.loading}
-        emptyMessage="Belum ada inovasi yang dinilai."
-        onPageChange={assessed.onPageChange}
+        toolbar={innovations.toolbar}
+        filterPanel={innovations.filterPanel}
+        columns={innovationColumnFormats}
+        items={innovations.items}
+        total={innovations.total}
+        currentPage={innovations.currentPage}
+        totalPages={innovations.totalPages}
+        loading={innovations.loading}
+        emptyMessage="Belum ada data inovasi."
+        onPageChange={innovations.onPageChange}
         getRowId={(row) => row.id}
         renderActions={(row) =>
-          renderAssessedActions({ row, onPreview: assessed.onPreview })
+          renderInnovationActions({ row, onPreview: innovations.onPreview })
         }
       />
     </div>

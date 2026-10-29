@@ -14,7 +14,33 @@ const globalRoleIds = () =>
 export const canAccessAllInnovations = (user: AuthenticatedUser) =>
   globalRoleIds().has(user.roleId);
 
-export const innovationOwnerScope = (user: AuthenticatedUser) =>
-  canAccessAllInnovations(user)
+export const isSuperAdmin = (user: AuthenticatedUser) =>
+  Boolean(process.env.INNOVATION_ROLE_SUPERADMIN_ID?.trim()) &&
+  user.roleId === process.env.INNOVATION_ROLE_SUPERADMIN_ID?.trim();
+
+// Super admin melihat semua inovasi. Co-admin hanya melihat inovasi instansi lain
+// yang sudah dikirim (draft/belum lengkap tetap tersembunyi).
+export const innovationOwnerScope = (user: AuthenticatedUser) => {
+  if (isSuperAdmin(user)) return {};
+  if (canAccessAllInnovations(user)) {
+    return {
+      OR: [
+        { createdBy: { institutionId: user.institutionId } },
+        { submissionStatus: "SUBMITTED" },
+      ],
+    };
+  }
+  return { createdBy: { institutionId: user.institutionId } };
+};
+
+// Database inovasi di dashboard: selain super admin, inovasi instansi lain
+// hanya tampil jika sudah dikirim.
+export const innovationVisibilityScope = (user: AuthenticatedUser) =>
+  isSuperAdmin(user)
     ? {}
-    : { createdBy: { institutionId: user.institutionId } };
+    : {
+        OR: [
+          { createdBy: { institutionId: user.institutionId } },
+          { submissionStatus: "SUBMITTED" },
+        ],
+      };

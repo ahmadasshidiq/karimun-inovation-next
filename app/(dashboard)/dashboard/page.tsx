@@ -4,23 +4,26 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppSidebarLayout } from "@/components/app-sidebar";
 import { toast } from "@/components/ui/toast";
-import { parseApiError, parseApiResponse } from "@/lib/helper/response-api";
+import { parseApiResponse } from "@/lib/helper/response-api";
 
 import AssessedInnovationPreview from "./components/assessed-innovation-preview";
 import DashboardContent from "./components/dashboard-content";
 import {
-  ASSESSED_ITEMS_PER_PAGE,
   initialDashboardSummary,
-  type AssessedInnovationDto,
-  type AssessedInnovationListResponse,
+  initialInnovationFilters,
+  initialInnovationOptions,
+  INNOVATION_ITEMS_PER_PAGE,
+  innovationFilterPanel,
+  innovationToolbar,
+  type DashboardInnovationDto,
+  type DashboardInnovationFilters,
+  type DashboardInnovationListResponse,
+  type DashboardInnovationOptions,
   type DashboardStatisticsResponse,
   type InnovationIndexPoint,
   type InnovationYearPoint,
   type AnnouncementItem,
   type CountdownValue,
-  type DashboardApiData,
-  type DashboardAssessmentItem,
-  type DashboardMapPoint,
   type DashboardSummary,
 } from "./page.config";
 
@@ -47,8 +50,6 @@ export default function DashboardPage() {
     seconds: "00",
   });
   const [summary, setSummary] = useState<DashboardSummary>(initialDashboardSummary);
-  const [mapPoints, setMapPoints] = useState<DashboardMapPoint[]>([]);
-  const [assessmentData, setAssessmentData] = useState<DashboardAssessmentItem[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [countdownTarget, setCountdownTarget] = useState(0);
   const [countdownActive, setCountdownActive] = useState(false);
@@ -58,45 +59,54 @@ export default function DashboardPage() {
   const [innovationsPerYear, setInnovationsPerYear] = useState<
     InnovationYearPoint[]
   >([]);
-  const [assessedItems, setAssessedItems] = useState<AssessedInnovationDto[]>(
-    [],
+  const [data, setData] = useState<DashboardInnovationDto[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [draftFilters, setDraftFilters] = useState<DashboardInnovationFilters>(
+    initialInnovationFilters,
   );
-  const [assessedTotal, setAssessedTotal] = useState(0);
-  const [assessedPage, setAssessedPage] = useState(1);
-  const [assessedLoading, setAssessedLoading] = useState(true);
-  const [previewItem, setPreviewItem] = useState<AssessedInnovationDto>();
+  const [filters, setFilters] = useState<DashboardInnovationFilters>(
+    initialInnovationFilters,
+  );
+  const [options, setOptions] = useState<DashboardInnovationOptions>(
+    initialInnovationOptions,
+  );
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [previewItem, setPreviewItem] = useState<DashboardInnovationDto>();
+  const [canOpenDetail, setCanOpenDetail] = useState(false);
 
-  const assessedTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(assessedTotal / ASSESSED_ITEMS_PER_PAGE)),
-    [assessedTotal],
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(total / INNOVATION_ITEMS_PER_PAGE)),
+    [total],
+  );
+
+  const activeFilterCount = useMemo(
+    () =>
+      Object.values(filters).filter((value) => value && value !== "all").length,
+    [filters],
   );
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [
-        response,
-        announcementResponse,
-        configurationResponse,
-        statisticsResponse,
-      ] = await Promise.all([
-        fetch("/api/innovations?page=1&limit=1", { cache: "no-store" }),
-        fetch("/api/announcements?dashboard=true", { cache: "no-store" }),
-        fetch("/api/dashboard-configuration", { cache: "no-store" }),
-        fetch("/api/dashboard/statistics", { cache: "no-store" }),
-      ]);
+      const [announcementResponse, configurationResponse, statisticsResponse] =
+        await Promise.all([
+          fetch("/api/announcements?dashboard=true", { cache: "no-store" }),
+          fetch("/api/dashboard-configuration", { cache: "no-store" }),
+          fetch("/api/dashboard/statistics", { cache: "no-store" }),
+        ]);
 
-      if (!response.ok) {
-        throw new Error(
-          await parseApiError(response, "Gagal mengambil data dashboard."),
+      const statisticsPayload =
+        await parseApiResponse<DashboardStatisticsResponse>(
+          statisticsResponse,
+          "Gagal mengambil data dashboard",
         );
-      }
-
-      const result = (await response.json()) as Partial<DashboardApiData>;
-      setSummary({ ...initialDashboardSummary, ...result.summary });
-      setMapPoints(Array.isArray(result.mapData) ? result.mapData : []);
-      setAssessmentData(
-        Array.isArray(result.assessmentData) ? result.assessmentData : [],
-      );
+      setSummary({
+        ...initialDashboardSummary,
+        ...statisticsPayload.data?.summary,
+      });
+      setInnovationIndex(statisticsPayload.data?.innovationIndex ?? []);
+      setInnovationsPerYear(statisticsPayload.data?.innovationsPerYear ?? []);
       if (announcementResponse.ok) {
         const announcementPayload = await announcementResponse.json();
         setAnnouncements(Array.isArray(announcementPayload.data) ? announcementPayload.data : []);
@@ -106,12 +116,6 @@ export default function DashboardPage() {
         const target = new Date(configurationPayload.data?.countdownTarget || "").getTime();
         setCountdownTarget(Number.isFinite(target) ? target : 0);
         setCountdownActive(Boolean(configurationPayload.data?.countdownActive));
-      }
-      if (statisticsResponse.ok) {
-        const statisticsPayload =
-          (await statisticsResponse.json()) as DashboardStatisticsResponse;
-        setInnovationIndex(statisticsPayload.data?.innovationIndex ?? []);
-        setInnovationsPerYear(statisticsPayload.data?.innovationsPerYear ?? []);
       }
     } catch (error) {
       toast.add({
@@ -138,41 +142,86 @@ export default function DashboardPage() {
     };
   }, [countdownActive, countdownTarget]);
 
-  const fetchAssessedInnovations = useCallback(async () => {
+  const fetchInnovations = useCallback(async () => {
     try {
-      setAssessedLoading(true);
+      setLoading(true);
       const params = new URLSearchParams({
-        page: String(assessedPage),
-        limit: String(ASSESSED_ITEMS_PER_PAGE),
+        page: String(currentPage),
+        limit: String(INNOVATION_ITEMS_PER_PAGE),
       });
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== "all") params.set(key, value);
+      });
+
       const response = await fetch(
-        `/api/dashboard/assessed-innovations?${params.toString()}`,
+        `/api/dashboard/innovations?${params.toString()}`,
         { cache: "no-store" },
       );
-      const payload = await parseApiResponse<AssessedInnovationListResponse>(
+      const payload = await parseApiResponse<DashboardInnovationListResponse>(
         response,
-        "Gagal mengambil inovasi yang sudah dinilai",
+        "Gagal mengambil data inovasi",
       );
-      setAssessedItems(Array.isArray(payload.data) ? payload.data : []);
-      setAssessedTotal(Number(payload.total) || 0);
+      setData(Array.isArray(payload.data) ? payload.data : []);
+      setTotal(Number(payload.total) || 0);
+      setOptions({ ...initialInnovationOptions, ...payload.options });
+      setCanOpenDetail(Boolean(payload.canOpenDetail));
     } catch (error) {
       toast.add({
         type: "error",
         title:
-          error instanceof Error
-            ? error.message
-            : "Gagal mengambil inovasi yang sudah dinilai",
+          error instanceof Error ? error.message : "Gagal mengambil data inovasi",
       });
     } finally {
-      setAssessedLoading(false);
+      setLoading(false);
     }
-  }, [assessedPage]);
+  }, [currentPage, filters]);
 
   useEffect(() => {
-    // Fetch berjalan saat halaman daftar inovasi yang dinilai berubah.
+    // Fetch berjalan setelah pagination atau filter yang diterapkan berubah.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchAssessedInnovations();
-  }, [fetchAssessedInnovations]);
+    void fetchInnovations();
+  }, [fetchInnovations]);
+
+  const setFilter = useCallback(
+    (key: keyof DashboardInnovationFilters, value: string) => {
+      setDraftFilters((current) => ({ ...current, [key]: value }));
+    },
+    [],
+  );
+
+  const applyFilters = useCallback(() => {
+    setFilters({ ...draftFilters, search: draftFilters.search.trim() });
+    setCurrentPage(1);
+  }, [draftFilters]);
+
+  const clearFilters = useCallback(() => {
+    setDraftFilters(initialInnovationFilters);
+    setFilters(initialInnovationFilters);
+    setCurrentPage(1);
+  }, []);
+
+  const toolbar = useMemo(
+    () =>
+      innovationToolbar({
+        onToggleFilter: () => setShowFilterPanel((current) => !current),
+        activeFilterCount,
+      }),
+    [activeFilterCount],
+  );
+
+  const filtersUi = useMemo(
+    () =>
+      showFilterPanel
+        ? innovationFilterPanel({
+            filters: draftFilters,
+            setFilter,
+            applyFilters,
+            clearFilters,
+            options,
+          })
+        : null,
+    [applyFilters, clearFilters, draftFilters, options, setFilter, showFilterPanel],
+  );
 
   useEffect(() => {
     // Fetch berjalan saat halaman dashboard dimuat.
@@ -185,26 +234,27 @@ export default function DashboardPage() {
       <DashboardContent
         countdown={countdown}
         summary={summary}
-        mapPoints={mapPoints}
-        assessmentData={assessmentData}
         announcements={announcements}
         countdownActive={countdownActive}
         innovationIndex={innovationIndex}
         innovationsPerYear={innovationsPerYear}
-        assessed={{
-          items: assessedItems,
-          total: assessedTotal,
-          currentPage: assessedPage,
-          totalPages: assessedTotalPages,
-          loading: assessedLoading,
-          onPageChange: setAssessedPage,
+        innovations={{
+          items: data,
+          total,
+          currentPage,
+          totalPages,
+          loading,
+          onPageChange: setCurrentPage,
           onPreview: setPreviewItem,
+          toolbar,
+          filterPanel: filtersUi,
         }}
       />
 
       {previewItem ? (
         <AssessedInnovationPreview
           innovation={previewItem}
+          canOpenDetail={canOpenDetail}
           onClose={() => setPreviewItem(undefined)}
         />
       ) : null}

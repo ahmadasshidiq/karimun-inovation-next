@@ -13,7 +13,7 @@ import {
 
 type InnovationVideoProps = {
   title: string;
-  video: { url: string; posterUrl: string | null } | null;
+  video: { url: string | null; posterUrl: string | null } | null;
 };
 
 export default function InnovationVideo({ title, video }: InnovationVideoProps) {
@@ -26,7 +26,7 @@ export default function InnovationVideo({ title, video }: InnovationVideoProps) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`Putar video ${title}`}
+        aria-label={`${video.url ? "Putar video" : "Lihat gambar"} ${title}`}
         className="group relative flex h-12 w-20 items-center justify-center overflow-hidden rounded-lg bg-slate-800"
       >
         {video.posterUrl ? (
@@ -37,9 +37,11 @@ export default function InnovationVideo({ title, video }: InnovationVideoProps) 
             className="absolute inset-0 size-full object-cover"
           />
         ) : null}
-        <span className="relative flex size-7 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow transition-transform group-hover:scale-110">
-          <Play className="size-3.5 fill-current" />
-        </span>
+        {video.url ? (
+          <span className="relative flex size-7 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow transition-transform group-hover:scale-110">
+            <Play className="size-3.5 fill-current" />
+          </span>
+        ) : null}
       </button>
 
       {open ? (
@@ -52,13 +54,22 @@ export default function InnovationVideo({ title, video }: InnovationVideoProps) 
               </DialogDescription>
             </DialogHeader>
             <div className="bg-black">
-              <video
-                src={video.url}
-                poster={video.posterUrl ?? undefined}
-                controls
-                autoPlay
-                className="aspect-video max-h-[70vh] w-full"
-              />
+              {video.url ? (
+                <video
+                  src={video.url}
+                  poster={video.posterUrl ?? undefined}
+                  controls
+                  autoPlay
+                  className="aspect-video max-h-[70vh] w-full"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element -- URL presigned dari MinIO, bukan aset statis.
+                <img
+                  src={video.posterUrl ?? undefined}
+                  alt={title}
+                  className="max-h-[70vh] w-full object-contain"
+                />
+              )}
             </div>
           </DialogContent>
         </Dialog>
