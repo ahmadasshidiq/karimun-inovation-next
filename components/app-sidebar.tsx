@@ -14,6 +14,7 @@ import {
 import {
   ChevronDown,
   FilePenLine,
+  KeyRound,
   Layers3,
   LogOut,
   Settings,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { AppCredit } from "@/components/app-credit";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -238,6 +240,7 @@ export function AppPageHeader({
   userRole,
 }: AppPageHeaderProps) {
   const { user, logout } = useSessionUser();
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const pathname = usePathname();
   const title = titleOverride ?? getPageTitle(pathname);
   const displayedName = userName ?? user?.fullname ?? "Pengguna";
@@ -291,6 +294,13 @@ export function AppPageHeader({
               <UserRound className="size-4" />
               Profil
             </DropdownMenuItem>
+            <DropdownMenuItem
+              className="h-9 cursor-pointer text-sm"
+              onClick={() => setShowChangePassword(true)}
+            >
+              <KeyRound className="size-4" />
+              Ganti Password
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
@@ -303,6 +313,12 @@ export function AppPageHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {showChangePassword ? (
+        <ChangePasswordDialog
+          open
+          onClose={() => setShowChangePassword(false)}
+        />
+      ) : null}
     </header>
   );
 }

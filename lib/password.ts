@@ -11,3 +11,14 @@ export function getPasswordError(password: string) {
   }
   return null;
 }
+
+export const getPasswordRules = (password: string) => [
+  { label: "Minimal 8 karakter", valid: password.length >= 8 },
+  { label: "Minimal 1 huruf besar", valid: /[A-Z]/.test(password) },
+  { label: "Minimal 1 huruf kecil", valid: /[a-z]/.test(password) },
+  { label: "Minimal 1 angka", valid: /\d/.test(password) },
+  {
+    label: "Minimal 1 karakter khusus",
+    valid: /[^A-Za-z0-9]/.test(password),
+  },
+];
