@@ -11,6 +11,8 @@ const protectedPrefixes = [
   "/lomba-inovasi",
   "/laporan-diklat",
   "/pengaturan",
+  "/settings",
+  "/nomenclatures",
 ];
 
 const isDev = process.env.NODE_ENV !== "production";

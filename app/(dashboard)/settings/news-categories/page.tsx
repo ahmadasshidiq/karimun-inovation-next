@@ -1,11 +1,268 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { AppPageHeader, AppSidebarLayout } from "@/components/app-sidebar";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import DynamicPage from "@/components/dynamic-page";
 import { toast } from "@/components/ui/toast";
 import { parseApiResponse } from "@/lib/helper/response-api";
-type Category={id:string;name:string;slug:string;isActive:boolean;newsCount:number};
-export default function NewsCategoriesPage(){const[items,setItems]=useState<Category[]>([]);const[loading,setLoading]=useState(true);const[open,setOpen]=useState(false);const[editing,setEditing]=useState<Category>();const[name,setName]=useState("");const[active,setActive]=useState(true);const[saving,setSaving]=useState(false);const load=useCallback(async()=>{try{setLoading(true);const r=await fetch("/api/news-categories",{cache:"no-store"});const p=await parseApiResponse<{data?:Category[]}>(r,"Gagal mengambil kategori.");setItems(p.data||[])}catch(e){toast.add({type:"error",title:e instanceof Error?e.message:"Gagal mengambil kategori."})}finally{setLoading(false)}},[]);useEffect(()=>{void load()},[load]);const close=()=>{setOpen(false);setEditing(undefined);setName("");setActive(true)};const save=async()=>{try{setSaving(true);const r=await fetch(editing?`/api/news-categories/${editing.id}`:"/api/news-categories",{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(editing?{name,isActive:active}:{name})});await parseApiResponse(r,"Gagal menyimpan kategori.");toast.add({type:"success",title:"Kategori berita berhasil disimpan."});close();await load()}catch(e){toast.add({type:"error",title:e instanceof Error?e.message:"Gagal menyimpan kategori."})}finally{setSaving(false)}};const disable=async(i:Category)=>{if(!window.confirm(`Nonaktifkan kategori "${i.name}"?`))return;try{const r=await fetch(`/api/news-categories/${i.id}`,{method:"DELETE"});const p=await parseApiResponse<{message?:string}>(r,"Gagal menonaktifkan kategori.");toast.add({type:"success",title:p.message||"Kategori dinonaktifkan."});await load()}catch(e){toast.add({type:"error",title:e instanceof Error?e.message:"Gagal menonaktifkan kategori."})}};return <AppSidebarLayout><main className="min-h-screen bg-[#f7f8fc] px-4 py-5 text-slate-900 sm:px-6 lg:px-8 lg:py-7"><div className="mx-auto max-w-[1600px]"><AppPageHeader title="Kategori Berita" description="Tambah, ubah, atau nonaktifkan kategori untuk Berita dan Agenda."/><section className="mt-5 rounded-[16px] border border-neutral-200 bg-white p-6 text-slate-700"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><Button className="h-9 bg-[#2362ee] px-4 text-xs font-semibold text-white hover:bg-blue-700" onClick={()=>{setEditing(undefined);setName("");setActive(true);setOpen(true)}}>Tambah Kategori</Button><p className="text-sm text-slate-500">Kategori nonaktif tetap tampil pada berita lama.</p></div>{loading?<p className="py-10 text-center text-sm text-slate-500">Memuat kategori...</p>:!items.length?<p className="py-10 text-center text-sm text-slate-500">Belum ada kategori.</p>:<div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b-2 border-slate-200"><tr className="border-b-2 border-slate-200"><th className="px-4 py-5 text-left text-[13px] font-semibold text-slate-700">Nama</th><th className="px-4 py-5 text-left text-[13px] font-semibold text-slate-700">Slug</th><th className="px-4 py-5 text-left text-[13px] font-semibold text-slate-700">Status</th><th className="px-4 py-5 text-left text-[13px] font-semibold text-slate-700">Dipakai Berita</th><th className="px-4 py-5 text-right text-[13px] font-semibold text-slate-700">Aksi</th></tr></thead><tbody>{items.map(i=><tr key={i.id} className="border-b border-slate-200 hover:bg-slate-50"><td className="px-4 py-5 font-semibold text-slate-900">{i.name}</td><td className="px-4 py-5 text-slate-700">{i.slug}</td><td className="px-4 py-5"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${i.isActive?"bg-emerald-100 text-emerald-700":"bg-slate-200 text-slate-600"}`}>{i.isActive?"Aktif":"Nonaktif"}</span></td><td className="px-4 py-5">{i.newsCount}</td><td className="space-x-1 px-4 py-5 text-right"><Button variant="ghost" size="sm" className="font-semibold text-blue-600 hover:bg-blue-50" onClick={()=>{setEditing(i);setName(i.name);setActive(i.isActive);setOpen(true)}}>Ubah</Button>{i.isActive?<Button variant="ghost" size="sm" className="font-semibold text-red-600 hover:bg-red-50" onClick={()=>void disable(i)}>Nonaktifkan</Button>:null}</td></tr>)}</tbody></table></div>}</section></div></main>{open?<Dialog open onOpenChange={v=>!v&&close()}><DialogContent className="bg-white p-0 text-slate-900 sm:max-w-md"><DialogHeader className="border-b border-slate-200 px-6 py-4"><DialogTitle className="text-lg font-bold">{editing?"Ubah Kategori":"Tambah Kategori"}</DialogTitle></DialogHeader><div className="space-y-2 px-6 py-5"><Label className="font-semibold text-slate-700">Nama kategori *</Label><Input className="h-10 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400" value={name} onChange={e=>setName(e.target.value)} placeholder="Contoh: Pelayanan Publik"/>{editing?<label className="flex items-center gap-2 pt-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/> Kategori aktif</label>:null}</div><DialogFooter className="border-t border-slate-200 px-6 py-4"><Button variant="outline" className="h-10 border-blue-600 bg-white px-5 font-semibold text-blue-600 hover:bg-blue-50" onClick={close}>Batal</Button><Button disabled={saving||!name.trim()} className="h-10 bg-[#2362ee] px-5 font-semibold text-white hover:bg-blue-700" onClick={()=>void save()}>{saving?"Menyimpan...":"Simpan"}</Button></DialogFooter></DialogContent></Dialog>:null}</AppSidebarLayout>}
+
+import FormData from "./components/form-data";
+import {
+  columnFormats,
+  filterPanel,
+  headerToolbar,
+  initialFilters,
+  ITEMS_PER_PAGE,
+  renderActions,
+  type NewsCategoryDto,
+  type NewsCategoryFilters,
+  type NewsCategoryFormValues,
+  type NewsCategoryListResponse,
+} from "./page.config";
+
+export default function NewsCategoryPage() {
+  const [data, setData] = useState<NewsCategoryDto[]>([]);
+  const [draftFilters, setDraftFilters] =
+    useState<NewsCategoryFilters>(initialFilters);
+  const [filters, setFilters] = useState<NewsCategoryFilters>(initialFilters);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [detailItem, setDetailItem] = useState<NewsCategoryDto>();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showFilterPanel, setShowFilterPanel] = useState(true);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)),
+    [total],
+  );
+  const activeFilterCount = useMemo(
+    () =>
+      Object.values(filters).filter((value) => value && value !== "all").length,
+    [filters],
+  );
+
+  const fetchNewsCategories = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(ITEMS_PER_PAGE),
+      });
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== "all") params.set(key, value);
+      });
+
+      const response = await fetch(
+        `/api/news-categories?${params.toString()}`,
+        { cache: "no-store" },
+      );
+      const payload = await parseApiResponse<NewsCategoryListResponse>(
+        response,
+        "Gagal mengambil data kategori berita",
+      );
+      setData(
+        Array.isArray(payload.data)
+          ? payload.data.map((item, index) => ({
+              ...item,
+              number: (currentPage - 1) * ITEMS_PER_PAGE + index + 1,
+            }))
+          : [],
+      );
+      setTotal(Number(payload.total) || 0);
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title:
+          error instanceof Error
+            ? error.message
+            : "Gagal mengambil data kategori berita",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, filters]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchNewsCategories();
+  }, [fetchNewsCategories]);
+
+  const handleOpenAdd = useCallback(() => {
+    setDetailItem(undefined);
+    setShowModal(true);
+  }, []);
+
+  const handleOpenEdit = useCallback((item: NewsCategoryDto) => {
+    setDetailItem(item);
+    setShowModal(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    if (saving) return;
+    setShowModal(false);
+    setDetailItem(undefined);
+  }, [saving]);
+
+  const handleSave = useCallback(
+    async (values: NewsCategoryFormValues) => {
+      try {
+        setSaving(true);
+        const response = await fetch(
+          detailItem
+            ? `/api/news-categories/${detailItem.id}`
+            : "/api/news-categories",
+          {
+            method: detailItem ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values),
+          },
+        );
+        await parseApiResponse(response, "Gagal menyimpan kategori berita");
+
+        toast.add({
+          type: "success",
+          title: detailItem
+            ? "Kategori berita berhasil diperbarui"
+            : "Kategori berita berhasil ditambahkan",
+        });
+        setShowModal(false);
+        setDetailItem(undefined);
+
+        if (!detailItem && currentPage !== 1) {
+          setCurrentPage(1);
+        } else {
+          await fetchNewsCategories();
+        }
+      } catch (error) {
+        toast.add({
+          type: "error",
+          title:
+            error instanceof Error
+              ? error.message
+              : "Gagal menyimpan kategori berita",
+        });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [currentPage, detailItem, fetchNewsCategories],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(`/api/news-categories/${id}`, {
+          method: "DELETE",
+        });
+        await parseApiResponse(response, "Gagal menonaktifkan kategori berita");
+        toast.add({
+          type: "success",
+          title: "Kategori berita berhasil dinonaktifkan",
+        });
+        setDeleteId(null);
+        await fetchNewsCategories();
+      } catch (error) {
+        toast.add({
+          type: "error",
+          title:
+            error instanceof Error
+              ? error.message
+              : "Gagal menonaktifkan kategori berita",
+        });
+      }
+    },
+    [fetchNewsCategories],
+  );
+
+  const setFilter = useCallback(
+    (key: keyof NewsCategoryFilters, value: string) => {
+      setDraftFilters((current) => ({ ...current, [key]: value }));
+    },
+    [],
+  );
+
+  const applyFilters = useCallback(() => {
+    setFilters({ ...draftFilters, search: draftFilters.search.trim() });
+    setCurrentPage(1);
+  }, [draftFilters]);
+
+  const clearFilters = useCallback(() => {
+    setDraftFilters(initialFilters);
+    setFilters(initialFilters);
+    setCurrentPage(1);
+  }, []);
+
+  const toolbar = useMemo(
+    () =>
+      headerToolbar({
+        onAdd: handleOpenAdd,
+        onToggleFilter: () => setShowFilterPanel((current) => !current),
+        activeFilterCount,
+      }),
+    [activeFilterCount, handleOpenAdd],
+  );
+
+  const filtersUi = useMemo(
+    () =>
+      showFilterPanel
+        ? filterPanel({
+            filters: draftFilters,
+            setFilter,
+            applyFilters,
+            clearFilters,
+          })
+        : null,
+    [applyFilters, clearFilters, draftFilters, setFilter, showFilterPanel],
+  );
+
+  return (
+    <AppSidebarLayout>
+      <main className="min-h-screen bg-[#f7f8fc] px-4 py-5 text-neutral-950 sm:px-6 lg:px-8 lg:py-7">
+        <div className="mx-auto w-full max-w-[1600px]">
+          <AppPageHeader
+            title="Kategori Berita"
+            description="Tambah, ubah, atau nonaktifkan kategori untuk Berita dan Agenda."
+          />
+
+          <DynamicPage
+            className="mt-5"
+            toolbar={toolbar}
+            filterPanel={filtersUi}
+            columns={columnFormats}
+            items={data}
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            loading={loading}
+            emptyMessage="Belum ada data kategori berita."
+            onPageChange={setCurrentPage}
+            getRowId={(row) => row.id}
+            renderActions={(row) =>
+              renderActions({
+                row,
+                deleteId,
+                setDeleteId,
+                onEdit: handleOpenEdit,
+                onDelete: handleDelete,
+              })
+            }
+          />
+        </div>
+      </main>
+
+      {showModal ? (
+        <FormData
+          open
+          initialData={detailItem}
+          saving={saving}
+          onClose={handleCloseModal}
+          onSubmit={handleSave}
+        />
+      ) : null}
+    </AppSidebarLayout>
+  );
+}
