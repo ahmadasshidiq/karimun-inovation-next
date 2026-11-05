@@ -4,6 +4,7 @@ import { Status } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { canManageRole, requirePermission } from "@/lib/auth-user";
+import { getPasswordError } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
 const hashPassword = (password: string, salt: string) =>
@@ -98,11 +99,9 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  if (password.length < 8) {
-    return NextResponse.json(
-      { message: "Password minimal 8 karakter." },
-      { status: 400 },
-    );
+  const passwordError = getPasswordError(password);
+  if (passwordError) {
+    return NextResponse.json({ message: passwordError }, { status: 400 });
   }
 
   if (!(await canManageRole(access.user, [roleId]))) {

@@ -33,7 +33,7 @@ export const sanitizeNewsContent = (content: string) =>
       video: ["src", "controls", "poster"],
       source: ["src", "type"],
     },
-    allowedSchemes: ["http", "https", "data"],
+    allowedSchemes: ["http", "https", "mailto"],
     allowedSchemesByTag: {
       img: ["http", "https", "data"],
       video: ["http", "https"],

@@ -4,6 +4,12 @@ import { Status } from "@prisma/client";
 import { SignJWT } from "jose";
 import { NextResponse } from "next/server";
 
+import {
+  clearLoginFailures,
+  getClientIp,
+  getLoginBlockSeconds,
+  recordLoginFailure,
+} from "@/lib/login-rate-limit";
 import { prisma } from "@/lib/prisma";
 
 type LoginBody = {
@@ -30,6 +36,23 @@ export async function POST(request: Request) {
       return unauthorizedResponse();
     }
 
+    const ip = getClientIp(request);
+    const blockSeconds = getLoginBlockSeconds(identifier, ip);
+
+    if (blockSeconds > 0) {
+      return NextResponse.json(
+        {
+          message: `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(blockSeconds / 60)} menit.`,
+        },
+        { status: 429, headers: { "Retry-After": String(blockSeconds) } },
+      );
+    }
+
+    const failed = () => {
+      recordLoginFailure(identifier, ip);
+      return unauthorizedResponse();
+    };
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -47,11 +70,11 @@ export async function POST(request: Request) {
 
     if (!user) {
       scryptSync(password, "invalid-login-salt", 64);
-      return unauthorizedResponse();
+      return failed();
     }
 
     if (user.status !== Status.ACTIVE || user.deletedAt) {
-      return unauthorizedResponse();
+      return failed();
     }
 
     const storedHash = Buffer.from(user.password, "hex");
@@ -62,8 +85,10 @@ export async function POST(request: Request) {
       storedHash.length !== submittedHash.length ||
       !timingSafeEqual(storedHash, submittedHash)
     ) {
-      return unauthorizedResponse();
+      return failed();
     }
+
+    clearLoginFailures(identifier);
 
     const jwtSecret = process.env["JWT_SECRET"];
 
@@ -71,7 +96,7 @@ export async function POST(request: Request) {
       throw new Error("JWT_SECRET belum dikonfigurasi.");
     }
 
-    const tokenLifetime = rememberMe ? "30d" : "1d";
+    const tokenLifetime = rememberMe ? "7d" : "1d";
     const token = await new SignJWT({
       username: user.username,
       roleId: user.roleId,
@@ -109,7 +134,7 @@ export async function POST(request: Request) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      ...(rememberMe ? { maxAge: 60 * 60 * 24 * 30 } : {}),
+      ...(rememberMe ? { maxAge: 60 * 60 * 24 * 7 } : {}),
     });
 
     return response;

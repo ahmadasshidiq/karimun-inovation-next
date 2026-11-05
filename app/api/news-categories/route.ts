@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientErrorMessage } from "@/lib/api-error";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { slugifyNewsCategory } from "@/lib/news-category";
@@ -17,5 +18,5 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   if (!(await canManage())) return NextResponse.json({ message: "Tidak memiliki akses kategori berita." }, { status: 403 });
-  try { const payload = await request.json() as { name?: unknown }; const name = typeof payload.name === "string" ? payload.name.trim() : ""; if (!name) throw new Error("Nama kategori wajib diisi."); const category = await prisma.newsCategoryEntity.create({ data: { name, slug: await uniqueSlug(slugifyNewsCategory(name)) } }); return NextResponse.json({ message: "Kategori berhasil ditambahkan.", data: category }, { status: 201 }); } catch (error) { return NextResponse.json({ message: error instanceof Error ? error.message : "Gagal menambah kategori." }, { status: 400 }); }
+  try { const payload = await request.json() as { name?: unknown }; const name = typeof payload.name === "string" ? payload.name.trim() : ""; if (!name) throw new Error("Nama kategori wajib diisi."); const category = await prisma.newsCategoryEntity.create({ data: { name, slug: await uniqueSlug(slugifyNewsCategory(name)) } }); return NextResponse.json({ message: "Kategori berhasil ditambahkan.", data: category }, { status: 201 }); } catch (error) { return NextResponse.json({ message: clientErrorMessage(error, "Gagal menambah kategori.") }, { status: 400 }); }
 }
