@@ -9,6 +9,7 @@ import {
 } from "@/lib/innovation-submission";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -42,7 +43,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   return NextResponse.json({ data: toPeriodDto(period) });
 }
 
-export async function PUT(request: NextRequest, context: RouteContext) {
+async function handlePut(request: NextRequest, context: RouteContext) {
   const user = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
@@ -93,7 +94,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   });
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+async function handleDelete(_request: NextRequest, context: RouteContext) {
   const user = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
@@ -131,3 +132,6 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
 
   return NextResponse.json({ message: "Periode lomba berhasil dihapus." });
 }
+
+export const PUT = withAudit("competition-periods/[id]", handlePut);
+export const DELETE = withAudit("competition-periods/[id]", handleDelete);

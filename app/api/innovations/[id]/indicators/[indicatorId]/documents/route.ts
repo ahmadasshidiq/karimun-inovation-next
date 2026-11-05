@@ -6,6 +6,7 @@ import { innovationOwnerScope } from "@/lib/innovation-access";
 import { resetIndicatorReview } from "@/lib/innovation-indicator";
 import { ensureMinioBucket, getMinioClient, minioBucket, minioPublicUrl } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -26,7 +27,7 @@ const INDICATOR_FILE_TYPES: Record<number, string[]> = {
   20: ["MP4", "JPG", "JPEG", "PNG"],
 };
 
-export async function POST(
+async function handlePost(
   request: NextRequest,
   context: { params: Promise<{ id: string; indicatorId: string }> },
 ) {
@@ -118,3 +119,5 @@ export async function POST(
     return NextResponse.json({ message: "Gagal mengunggah dokumen." }, { status: 500 });
   }
 }
+
+export const POST = withAudit("innovations/[id]/indicators/[indicatorId]/documents", handlePost);

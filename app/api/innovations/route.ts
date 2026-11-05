@@ -28,6 +28,7 @@ import {
   minioPublicUrl,
 } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
@@ -284,7 +285,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
@@ -393,3 +394,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Gagal menyimpan inovasi." }, { status: 500 });
   }
 }
+
+export const POST = withAudit("innovations", handlePost);

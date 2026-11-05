@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/auth-user";
 import { ensureMinioBucket, ensurePublicNewsCovers, getMinioClient, minioBucket, minioPublicUrl } from "@/lib/minio";
 import { NEWS_PERMISSION } from "@/lib/news";
 import { hasPermission } from "@/lib/permission";
+import { withAudit } from "@/lib/audit-log";
 
 const MAX_COVER_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -14,7 +15,7 @@ const hasValidImageSignature = (bytes: Uint8Array, type: string) => {
   return type === "image/webp" && new TextDecoder().decode(bytes.slice(0, 4)) === "RIFF" && new TextDecoder().decode(bytes.slice(8, 12)) === "WEBP";
 };
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user || !hasPermission(user.role.permission, NEWS_PERMISSION.model, NEWS_PERMISSION.action)) {
     return NextResponse.json({ message: "Tidak memiliki akses berita." }, { status: 403 });
@@ -47,3 +48,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Gagal mengunggah cover berita." }, { status: 500 });
   }
 }
+
+export const POST = withAudit("news/upload-cover", handlePost);

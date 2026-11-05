@@ -8,6 +8,7 @@ import {
 } from "@/lib/innovation-index";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -23,7 +24,7 @@ const notFound = () =>
     { status: 404 },
   );
 
-export async function PUT(request: NextRequest, context: RouteContext) {
+async function handlePut(request: NextRequest, context: RouteContext) {
   const user = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
@@ -63,7 +64,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   });
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+async function handleDelete(_request: NextRequest, context: RouteContext) {
   const user = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
@@ -83,3 +84,6 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
 
   return NextResponse.json({ message: "Nilai indeks berhasil dihapus." });
 }
+
+export const PUT = withAudit("innovation-indices/[id]", handlePut);
+export const DELETE = withAudit("innovation-indices/[id]", handleDelete);

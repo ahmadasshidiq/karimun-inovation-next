@@ -7,9 +7,10 @@ import {
   getSubmitBlockMessage,
 } from "@/lib/innovation-completeness";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 // Kirim data inovasi langsung dari halaman indikator tanpa membuka form edit.
-export async function POST(
+async function handlePost(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -44,3 +45,5 @@ export async function POST(
 
   return NextResponse.json({ message: "Data inovasi berhasil dikirim." });
 }
+
+export const POST = withAudit("innovations/[id]/send", handlePost);

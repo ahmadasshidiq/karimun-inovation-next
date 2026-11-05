@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { sanitizeAnnouncementContent } from "@/lib/helper/announcement-content";
+import { withAudit } from "@/lib/audit-log";
 
-export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function handlePut(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const access = await requirePermission("announcements", "update");
   if (!access.user) return access.response;
   const { id } = await context.params;
@@ -29,7 +30,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   return NextResponse.json({ message: "Pengumuman berhasil diperbarui.", data });
 }
 
-export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function handleDelete(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const access = await requirePermission("announcements", "delete");
   if (!access.user) return access.response;
   const { id } = await context.params;
@@ -41,3 +42,6 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     return NextResponse.json({ message: "Pengumuman tidak ditemukan." }, { status: 404 });
   return NextResponse.json({ message: "Pengumuman berhasil dihapus." });
 }
+
+export const PUT = withAudit("announcements/[id]", handlePut);
+export const DELETE = withAudit("announcements/[id]", handleDelete);

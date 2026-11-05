@@ -17,8 +17,9 @@ import {
 } from "@/lib/innovation-submission";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
-export async function POST(
+async function handlePost(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -135,3 +136,5 @@ export async function POST(
     { status: 201 },
   );
 }
+
+export const POST = withAudit("innovations/[id]/submissions", handlePost);

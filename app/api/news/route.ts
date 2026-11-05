@@ -6,6 +6,7 @@ import { legacyCategoryFor } from "@/lib/news-category";
 import { createSlug, isNewsStatus, isNewsType, NEWS_PERMISSION, sanitizeNewsContent } from "@/lib/news";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 type Payload = { title?: unknown; slug?: unknown; excerpt?: unknown; content?: unknown; coverImage?: unknown; categoryId?: unknown; type?: unknown; eventDate?: unknown; isFeatured?: unknown; status?: unknown; publishedAt?: unknown };
 const canManage = async () => { const user = await getAuthenticatedUser(); return user && hasPermission(user.role.permission, NEWS_PERMISSION.model, NEWS_PERMISSION.action) ? user : null; };
@@ -22,7 +23,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data: records.map(response), total, page, limit });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const user = await canManage(); if (!user) return NextResponse.json({ message: "Tidak memiliki akses berita." }, { status: 403 });
   try { const payload = await request.json() as Payload; const title = typeof payload.title === "string" ? payload.title.trim() : ""; const excerpt = typeof payload.excerpt === "string" ? payload.excerpt.trim() : ""; const content = sanitizeNewsContent(typeof payload.content === "string" ? payload.content : ""); const categoryId = typeof payload.categoryId === "string" ? payload.categoryId : ""; if (!title || !excerpt || !content || !categoryId) throw new Error("Judul, ringkasan, isi artikel, dan kategori wajib diisi."); if (excerpt.length > 200) throw new Error("Ringkasan berita maksimal 200 karakter."); if (!isNewsType(payload.type) || !isNewsStatus(payload.status) || payload.status === "ARCHIVED") throw new Error("Data berita tidak valid."); const category = await prisma.newsCategoryEntity.findFirst({ where: { id: categoryId, isActive: true } }); if (!category) throw new Error("Kategori tidak tersedia atau telah dinonaktifkan."); const coverImage = typeof payload.coverImage === "string" && payload.coverImage.trim() ? payload.coverImage.trim() : null; const status = payload.status; const publishedAt = status === "PUBLISHED" ? dateValue(payload.publishedAt, "Tanggal publikasi") || new Date() : dateValue(payload.publishedAt, "Tanggal publikasi"); const news = await prisma.news.create({ data: { title, slug: await uniqueSlug(typeof payload.slug === "string" ? createSlug(payload.slug) : createSlug(title)), excerpt, content, coverImage, category: legacyCategoryFor(category.slug), categoryId, type: payload.type, eventDate: dateValue(payload.eventDate, "Tanggal agenda"), isFeatured: payload.isFeatured === true, status, publishedAt, authorId: user.id }, include: { author: { select: { fullname: true } }, categoryRef: { select: { name: true } } } }); return NextResponse.json({ message: "Berita berhasil disimpan.", data: response(news) }, { status: 201 }); } catch (error) { return NextResponse.json({ message: clientErrorMessage(error, "Gagal menyimpan berita.") }, { status: 400 }); }
 }
+
+export const POST = withAudit("news", handlePost);

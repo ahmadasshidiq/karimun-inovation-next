@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser, requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 export async function GET() {
   if (!(await getAuthenticatedUser()))
@@ -10,7 +11,7 @@ export async function GET() {
   return NextResponse.json({ data });
 }
 
-export async function PUT(request: NextRequest) {
+async function handlePut(request: NextRequest) {
   const access = await requirePermission("dashboard-configurations", "update");
   if (!access.user) return access.response;
   const payload = (await request.json()) as { countdownTarget?: string; countdownActive?: boolean };
@@ -28,3 +29,5 @@ export async function PUT(request: NextRequest) {
       });
   return NextResponse.json({ message: "Konfigurasi dashboard berhasil disimpan.", data });
 }
+
+export const PUT = withAudit("dashboard-configuration", handlePut);

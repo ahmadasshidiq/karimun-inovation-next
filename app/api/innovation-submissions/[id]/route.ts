@@ -9,9 +9,10 @@ import {
 } from "@/lib/innovation-submission";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 // Pembatalan tidak menghapus data agar riwayat pengajuan tetap tersimpan.
-export async function DELETE(
+async function handleDelete(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -71,3 +72,5 @@ export async function DELETE(
 
   return NextResponse.json({ message: "Pengajuan berhasil dibatalkan." });
 }
+
+export const DELETE = withAudit("innovation-submissions/[id]", handleDelete);

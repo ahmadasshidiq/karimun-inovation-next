@@ -63,6 +63,7 @@ model User {
   reviewedSubmissions   InnovationSubmission[]          @relation("SubmissionReviews")
   reviewedIndicators    InnovationIndicatorAssessment[] @relation("IndicatorReviews")
   newsArticles          News[]
+  auditLogs             AuditLog[]
 
   @@index([roleId])
   @@index([institutionId])
@@ -211,24 +212,24 @@ model Announcement {
 }
 
 model News {
-  id          String       @id @default(uuid()) @db.Uuid
-  title       String       @db.VarChar(255)
-  slug        String       @unique @db.VarChar(255)
-  excerpt     String       @db.Text
-  content     String       @db.Text
-  coverImage  String?      @map("cover_image") @db.Text
+  id          String              @id @default(uuid()) @db.Uuid
+  title       String              @db.VarChar(255)
+  slug        String              @unique @db.VarChar(255)
+  excerpt     String              @db.Text
+  content     String              @db.Text
+  coverImage  String?             @map("cover_image") @db.Text
   category    NewsCategory
-  categoryId  String?      @map("category_id") @db.Uuid
-  type        NewsType     @default(BERITA)
-  eventDate   DateTime?    @map("event_date") @db.Date
-  isFeatured  Boolean      @default(false) @map("is_featured")
-  status      NewsStatus   @default(DRAFT)
-  publishedAt DateTime?    @map("published_at") @db.Timestamptz(3)
-  authorId    String       @map("author_id") @db.Uuid
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt   DateTime?    @map("deleted_at") @db.Timestamptz(3)
-  author      User         @relation(fields: [authorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  categoryId  String?             @map("category_id") @db.Uuid
+  type        NewsType            @default(BERITA)
+  eventDate   DateTime?           @map("event_date") @db.Date
+  isFeatured  Boolean             @default(false) @map("is_featured")
+  status      NewsStatus          @default(DRAFT)
+  publishedAt DateTime?           @map("published_at") @db.Timestamptz(3)
+  authorId    String              @map("author_id") @db.Uuid
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt   DateTime?           @map("deleted_at") @db.Timestamptz(3)
+  author      User                @relation(fields: [authorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   categoryRef NewsCategoryEntity? @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([status, publishedAt])
@@ -312,4 +313,23 @@ model InnovationSubmission {
   @@index([track, status])
   @@index([periodId])
   @@map("innovation_submissions")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String   @db.VarChar(50)
+  entity    String   @db.VarChar(100)
+  entityId  String?  @map("entity_id") @db.VarChar(100)
+  metadata  Json?
+  ipAddress String?  @map("ip_address") @db.VarChar(64)
+  userAgent String?  @map("user_agent") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

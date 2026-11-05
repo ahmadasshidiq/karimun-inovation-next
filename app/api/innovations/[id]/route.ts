@@ -8,6 +8,7 @@ import {
 } from "@/lib/innovation-completeness";
 import { innovationOwnerScope } from "@/lib/innovation-access";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const serialize = (item: Awaited<ReturnType<typeof findInnovation>>) => {
   if (!item) return null;
@@ -64,7 +65,7 @@ export async function GET(
   return NextResponse.json({ data: serialize(item) });
 }
 
-export async function PUT(
+async function handlePut(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -133,7 +134,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
+async function handleDelete(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -155,3 +156,6 @@ export async function DELETE(
 
   return NextResponse.json({ message: "Inovasi berhasil dihapus." });
 }
+
+export const PUT = withAudit("innovations/[id]", handlePut);
+export const DELETE = withAudit("innovations/[id]", handleDelete);

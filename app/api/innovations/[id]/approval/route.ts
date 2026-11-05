@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
-export async function PATCH(
+async function handlePatch(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -31,3 +32,5 @@ export async function PATCH(
   const updated = await prisma.innovation.update({ where: { id }, data });
   return NextResponse.json({ message: action === "approve" ? "Inovasi disetujui." : "Inovasi dikembalikan untuk revisi.", data: updated });
 }
+
+export const PATCH = withAudit("innovations/[id]/approval", handlePatch);

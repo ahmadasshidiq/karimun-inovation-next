@@ -3,8 +3,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
-export async function POST() {
+async function handlePost() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   const jwtSecret = process.env["JWT_SECRET"];
@@ -38,3 +39,5 @@ export async function POST() {
 
   return response;
 }
+
+export const POST = withAudit("logout", handlePost);

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { canManageRole, requirePermission } from "@/lib/auth-user";
 import { getPasswordError } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const hashPassword = (password: string, salt: string) =>
   scryptSync(password, salt, 64).toString("hex");
@@ -44,7 +45,7 @@ export async function GET(
   return NextResponse.json({ data: user });
 }
 
-export async function PUT(
+async function handlePut(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -128,7 +129,7 @@ export async function PUT(
   return NextResponse.json({ message: "Akun berhasil diperbarui.", data: user });
 }
 
-export async function DELETE(
+async function handleDelete(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -163,3 +164,6 @@ export async function DELETE(
   }
   return NextResponse.json({ message: "Akun berhasil dihapus." });
 }
+
+export const PUT = withAudit("users/[id]", handlePut);
+export const DELETE = withAudit("users/[id]", handleDelete);

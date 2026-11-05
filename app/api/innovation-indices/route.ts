@@ -8,6 +8,7 @@ import {
 } from "@/lib/innovation-index";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUser();
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data: data.map(toInnovationIndexDto), total });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
@@ -78,3 +79,5 @@ export async function POST(request: NextRequest) {
     { status: 201 },
   );
 }
+
+export const POST = withAudit("innovation-indices", handlePost);

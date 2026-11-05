@@ -12,6 +12,7 @@ import {
   resetIndicatorReview,
 } from "@/lib/innovation-indicator";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 export async function GET(
   _request: NextRequest,
@@ -68,7 +69,7 @@ export async function GET(
   });
 }
 
-export async function PUT(
+async function handlePut(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -123,3 +124,5 @@ export async function PUT(
 
   return NextResponse.json({ message: "Parameter berhasil disimpan.", data: assessment });
 }
+
+export const PUT = withAudit("innovations/[id]/indicators", handlePut);

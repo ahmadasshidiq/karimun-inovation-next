@@ -6,8 +6,9 @@ import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
 import { INDICATOR_REVIEW_STATUSES } from "@/lib/innovation-indicator";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
-export async function PATCH(
+async function handlePatch(
   request: NextRequest,
   context: { params: Promise<{ id: string; indicatorId: string }> },
 ) {
@@ -85,3 +86,5 @@ export async function PATCH(
     data,
   });
 }
+
+export const PATCH = withAudit("innovations/[id]/indicators/[indicatorId]/review", handlePatch);

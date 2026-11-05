@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { sanitizeAnnouncementContent } from "@/lib/helper/announcement-content";
+import { withAudit } from "@/lib/audit-log";
 
 const dateOnly = (value: Date) => value.toISOString().slice(0, 10);
 
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const access = await requirePermission("announcements", "create");
   if (!access.user) return access.response;
 
@@ -65,3 +66,5 @@ export async function POST(request: NextRequest) {
   });
   return NextResponse.json({ message: "Pengumuman berhasil ditambahkan.", data }, { status: 201 });
 }
+
+export const POST = withAudit("announcements", handlePost);

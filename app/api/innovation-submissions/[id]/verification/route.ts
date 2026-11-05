@@ -7,8 +7,9 @@ import {
 } from "@/lib/innovation-submission";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
-export async function PATCH(
+async function handlePatch(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -88,3 +89,5 @@ export async function PATCH(
         : "Pengajuan dikembalikan untuk diperbaiki.",
   });
 }
+
+export const PATCH = withAudit("innovation-submissions/[id]/verification", handlePatch);

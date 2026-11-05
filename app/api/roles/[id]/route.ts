@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { MASTER_PERMISSIONS } from "@/lib/master-permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const isSuperAdmin = (user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
   user?.role.name === "Super Admin";
@@ -36,7 +37,7 @@ export async function GET(
   return NextResponse.json({ data: role });
 }
 
-export async function PUT(
+async function handlePut(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -68,7 +69,7 @@ export async function PUT(
   return NextResponse.json({ message: "Role berhasil diperbarui.", data });
 }
 
-export async function DELETE(
+async function handleDelete(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -93,3 +94,6 @@ export async function DELETE(
     throw error;
   }
 }
+
+export const PUT = withAudit("roles/[id]", handlePut);
+export const DELETE = withAudit("roles/[id]", handleDelete);

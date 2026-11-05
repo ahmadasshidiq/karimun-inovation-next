@@ -13,6 +13,7 @@ import {
 } from "@/lib/innovation-indicator";
 import { getMinioClient, minioBucket } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const findDocument = (
   id: string,
@@ -80,7 +81,7 @@ export async function GET(
   }
 }
 
-export async function DELETE(
+async function handleDelete(
   _request: NextRequest,
   context: {
     params: Promise<{ id: string; indicatorId: string; documentId: string }>;
@@ -120,3 +121,5 @@ export async function DELETE(
     );
   }
 }
+
+export const DELETE = withAudit("innovations/[id]/indicators/[indicatorId]/documents/[documentId]", handleDelete);

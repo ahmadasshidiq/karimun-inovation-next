@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 export async function GET(
   _request: NextRequest,
@@ -14,7 +15,7 @@ export async function GET(
   return NextResponse.json({ data });
 }
 
-export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function handlePut(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const access = await requirePermission("nomenclatures", "update");
   if (!access.user) return access.response;
   const { id } = await context.params;
@@ -24,10 +25,13 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   catch { return NextResponse.json({ message: "Nomenklatur tidak ditemukan." }, { status: 404 }); }
 }
 
-export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function handleDelete(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const access = await requirePermission("nomenclatures", "delete");
   if (!access.user) return access.response;
   const { id } = await context.params;
   try { await prisma.nomenclature.delete({ where: { id } }); return NextResponse.json({ message: "Nomenklatur berhasil dihapus." }); }
   catch { return NextResponse.json({ message: "Nomenklatur tidak ditemukan atau masih digunakan." }, { status: 400 }); }
 }
+
+export const PUT = withAudit("nomenclatures/[id]", handlePut);
+export const DELETE = withAudit("nomenclatures/[id]", handleDelete);

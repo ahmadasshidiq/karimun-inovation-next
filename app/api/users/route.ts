@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { canManageRole, requirePermission } from "@/lib/auth-user";
 import { getPasswordError } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const hashPassword = (password: string, salt: string) =>
   scryptSync(password, salt, 64).toString("hex");
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data, total, options: { roles, institutions } });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const access = await requirePermission("users", "create");
   if (!access.user) return access.response;
 
@@ -158,3 +159,5 @@ export async function POST(request: NextRequest) {
     { status: 201 },
   );
 }
+
+export const POST = withAudit("users", handlePost);

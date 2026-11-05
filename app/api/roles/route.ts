@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { MASTER_PERMISSIONS } from "@/lib/master-permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 const isSuperAdmin = (user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
   user?.role.name === "Super Admin";
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data, total });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   if (!isSuperAdmin(await getAuthenticatedUser()))
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
@@ -70,3 +71,5 @@ export async function POST(request: NextRequest) {
   });
   return NextResponse.json({ message: "Role berhasil dibuat.", data: role }, { status: 201 });
 }
+
+export const POST = withAudit("roles", handlePost);

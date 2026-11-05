@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
 export async function GET(request: NextRequest) {
   const access = await requirePermission("nomenclatures", "get-all");
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data, total });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const access = await requirePermission("nomenclatures", "create");
   if (!access.user) return access.response;
   const body = (await request.json()) as { name?: string; description?: string };
@@ -24,3 +25,5 @@ export async function POST(request: NextRequest) {
   const data = await prisma.nomenclature.create({ data: { name: body.name.trim(), description: body.description?.trim() || null } });
   return NextResponse.json({ data }, { status: 201 });
 }
+
+export const POST = withAudit("nomenclatures", handlePost);

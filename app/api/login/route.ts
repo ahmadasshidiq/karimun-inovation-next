@@ -4,6 +4,7 @@ import { Status } from "@prisma/client";
 import { SignJWT } from "jose";
 import { NextResponse } from "next/server";
 
+import { recordAuditLog } from "@/lib/audit-log";
 import {
   clearLoginFailures,
   getClientIp,
@@ -40,6 +41,12 @@ export async function POST(request: Request) {
     const blockSeconds = getLoginBlockSeconds(identifier, ip);
 
     if (blockSeconds > 0) {
+      await recordAuditLog({
+        request,
+        action: "LOGIN_BLOCKED",
+        entity: "login",
+        metadata: { identifier },
+      });
       return NextResponse.json(
         {
           message: `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(blockSeconds / 60)} menit.`,
@@ -48,8 +55,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const failed = () => {
+    const failed = async () => {
       recordLoginFailure(identifier, ip);
+      await recordAuditLog({
+        request,
+        userId: user?.id,
+        action: "LOGIN_FAILED",
+        entity: "login",
+        metadata: { identifier },
+      });
       return unauthorizedResponse();
     };
 
@@ -70,11 +84,11 @@ export async function POST(request: Request) {
 
     if (!user) {
       scryptSync(password, "invalid-login-salt", 64);
-      return failed();
+      return await failed();
     }
 
     if (user.status !== Status.ACTIVE || user.deletedAt) {
-      return failed();
+      return await failed();
     }
 
     const storedHash = Buffer.from(user.password, "hex");
@@ -85,10 +99,17 @@ export async function POST(request: Request) {
       storedHash.length !== submittedHash.length ||
       !timingSafeEqual(storedHash, submittedHash)
     ) {
-      return failed();
+      return await failed();
     }
 
     clearLoginFailures(identifier);
+    await recordAuditLog({
+      request,
+      userId: user.id,
+      action: "LOGIN",
+      entity: "login",
+      entityId: user.id,
+    });
 
     const jwtSecret = process.env["JWT_SECRET"];
 

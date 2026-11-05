@@ -4,8 +4,9 @@ import { getAuthenticatedUser } from "@/lib/auth-user";
 import { isNewsStatus, NEWS_PERMISSION } from "@/lib/news";
 import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit-log";
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePatch(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthenticatedUser();
   if (!user || !hasPermission(user.role.permission, NEWS_PERMISSION.model, NEWS_PERMISSION.action)) {
     return NextResponse.json({ message: "Tidak memiliki akses berita." }, { status: 403 });
@@ -24,3 +25,5 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!result.count) return NextResponse.json({ message: "Berita tidak ditemukan." }, { status: 404 });
   return NextResponse.json({ message: payload.status === "PUBLISHED" ? "Berita berhasil dipublikasikan." : "Berita disimpan sebagai draft." });
 }
+
+export const PATCH = withAudit("news/[id]/status", handlePatch);
