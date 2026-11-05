@@ -3,7 +3,7 @@ import { randomBytes, scryptSync } from "node:crypto";
 import { Status } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { canManageRole, requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 
 const hashPassword = (password: string, salt: string) =>
@@ -30,9 +30,8 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser())) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
+  const access = await requirePermission("users", "get-by-id");
+  if (!access.user) return access.response;
   const { id } = await context.params;
   const user = await prisma.user.findFirst({
     where: { id, deletedAt: null },
@@ -48,9 +47,8 @@ export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAuthenticatedUser())) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
+  const access = await requirePermission("users", "update");
+  if (!access.user) return access.response;
   const { id } = await context.params;
   const existing = await prisma.user.findFirst({ where: { id, deletedAt: null } });
   if (!existing) {
@@ -67,6 +65,12 @@ export async function PUT(
     return NextResponse.json(
       { message: "Username, nama lengkap, role, dan instansi wajib diisi." },
       { status: 400 },
+    );
+  }
+  if (!(await canManageRole(access.user, [existing.roleId, roleId]))) {
+    return NextResponse.json(
+      { message: "Hanya Super Admin yang dapat mengelola akun dengan role tersebut." },
+      { status: 403 },
     );
   }
 
@@ -129,15 +133,25 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const authenticatedUser = await getAuthenticatedUser();
-  if (!authenticatedUser) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
+  const access = await requirePermission("users", "delete");
+  if (!access.user) return access.response;
+  const authenticatedUser = access.user;
   const { id } = await context.params;
   if (authenticatedUser.id === id) {
     return NextResponse.json(
       { message: "Akun yang sedang digunakan tidak dapat dihapus." },
       { status: 400 },
+    );
+  }
+
+  const target = await prisma.user.findFirst({
+    where: { id, deletedAt: null },
+    select: { roleId: true },
+  });
+  if (target && !(await canManageRole(authenticatedUser, [target.roleId]))) {
+    return NextResponse.json(
+      { message: "Hanya Super Admin yang dapat mengelola akun dengan role tersebut." },
+      { status: 403 },
     );
   }
 

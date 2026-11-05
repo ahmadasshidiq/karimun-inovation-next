@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { sanitizeAnnouncementContent } from "@/lib/helper/announcement-content";
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  if (!(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("announcements", "update");
+  if (!access.user) return access.response;
   const { id } = await context.params;
   const payload = (await request.json()) as Record<string, string>;
   const title = payload.title?.trim();
@@ -30,8 +30,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 }
 
 export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  if (!(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("announcements", "delete");
+  if (!access.user) return access.response;
   const { id } = await context.params;
   const result = await prisma.announcement.updateMany({
     where: { id, deletedAt: null },

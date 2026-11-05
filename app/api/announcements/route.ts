@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { getAuthenticatedUser, requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { sanitizeAnnouncementContent } from "@/lib/helper/announcement-content";
 
 const dateOnly = (value: Date) => value.toISOString().slice(0, 10);
 
 export async function GET(request: NextRequest) {
-  if (!(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const dashboard = request.nextUrl.searchParams.get("dashboard") === "true";
+
+  // Pengumuman aktif di dashboard boleh dibaca semua user yang login;
+  // daftar lengkap (termasuk nonaktif) hanya untuk pengelola pengumuman.
+  if (dashboard) {
+    if (!(await getAuthenticatedUser()))
+      return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  } else {
+    const access = await requirePermission("announcements", "get-all");
+    if (!access.user) return access.response;
+  }
 
   const page = Math.max(1, Number(request.nextUrl.searchParams.get("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(request.nextUrl.searchParams.get("limit")) || 10));
   const search = request.nextUrl.searchParams.get("search")?.trim() || "";
   const status = request.nextUrl.searchParams.get("status");
-  const dashboard = request.nextUrl.searchParams.get("dashboard") === "true";
   const where = {
     deletedAt: null,
     ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
@@ -40,8 +48,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("announcements", "create");
+  if (!access.user) return access.response;
 
   const payload = (await request.json()) as Record<string, string>;
   const title = payload.title?.trim();

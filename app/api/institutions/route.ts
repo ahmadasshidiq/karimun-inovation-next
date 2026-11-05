@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
-  if (!(await getAuthenticatedUser())) return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("institutions", "get-all");
+  if (!access.user) return access.response;
   const page = Math.max(1, Number(request.nextUrl.searchParams.get("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(request.nextUrl.searchParams.get("limit")) || 10));
   const search = request.nextUrl.searchParams.get("search")?.trim() || "";
@@ -17,7 +18,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await getAuthenticatedUser())) return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("institutions", "create");
+  if (!access.user) return access.response;
   const body = (await request.json()) as { name?: string; type?: string; nomenclatureId?: string; address?: string };
   if (!body.name?.trim() || !body.type?.trim() || !body.nomenclatureId) return NextResponse.json({ message: "Nama, tipe, dan nomenklatur wajib diisi." }, { status: 400 });
   const data = await prisma.institution.create({ data: { name: body.name.trim(), type: body.type.trim(), nomenclatureId: body.nomenclatureId, address: body.address?.trim() || null } });

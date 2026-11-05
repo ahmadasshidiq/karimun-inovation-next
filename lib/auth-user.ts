@@ -1,6 +1,8 @@
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
+import { hasPermission } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
 
 export async function getAuthenticatedUser() {
@@ -29,4 +31,62 @@ export async function getAuthenticatedUser() {
   } catch {
     return null;
   }
+}
+
+/**
+ * Memastikan user login dan memiliki permission `model:action`.
+ * Jika tidak, `response` berisi 401/403 yang langsung dikembalikan route.
+ */
+export async function requirePermission(model: string, action: string) {
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    return {
+      user: null,
+      response: NextResponse.json(
+        { message: "Sesi tidak valid." },
+        { status: 401 },
+      ),
+    } as const;
+  }
+
+  if (!hasPermission(user.role.permission, model, action)) {
+    return {
+      user: null,
+      response: NextResponse.json(
+        { message: "Anda tidak memiliki akses untuk tindakan ini." },
+        { status: 403 },
+      ),
+    } as const;
+  }
+
+  return { user, response: null } as const;
+}
+
+type AuthenticatedUser = NonNullable<
+  Awaited<ReturnType<typeof getAuthenticatedUser>>
+>;
+
+const isPrivilegedRole = (role: { name: string; permission: unknown }) =>
+  role.name === "Super Admin" ||
+  (typeof role.permission === "object" &&
+    role.permission !== null &&
+    (role.permission as { all?: unknown }).all === true);
+
+/**
+ * Hanya Super Admin yang boleh memberikan role berhak penuh atau mengelola
+ * akun yang memiliki role tersebut. Mencegah eskalasi hak akses.
+ */
+export async function canManageRole(
+  actor: AuthenticatedUser,
+  roleIds: string[],
+) {
+  if (isPrivilegedRole(actor.role)) return true;
+
+  const roles = await prisma.role.findMany({
+    where: { id: { in: roleIds } },
+    select: { name: true, permission: true },
+  });
+
+  return !roles.some(isPrivilegedRole);
 }

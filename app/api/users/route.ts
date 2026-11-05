@@ -3,7 +3,7 @@ import { randomBytes, scryptSync } from "node:crypto";
 import { Status } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { canManageRole, requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 
 const hashPassword = (password: string, salt: string) =>
@@ -27,9 +27,8 @@ const userSelect = {
 } as const;
 
 export async function GET(request: NextRequest) {
-  if (!(await getAuthenticatedUser())) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
+  const access = await requirePermission("users", "get-all");
+  if (!access.user) return access.response;
 
   const page = Math.max(1, Number(request.nextUrl.searchParams.get("page")) || 1);
   const limit = Math.min(
@@ -82,9 +81,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await getAuthenticatedUser())) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
+  const access = await requirePermission("users", "create");
+  if (!access.user) return access.response;
 
   const payload = (await request.json()) as Record<string, unknown>;
   const username = typeof payload.username === "string" ? payload.username.trim() : "";
@@ -104,6 +102,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { message: "Password minimal 8 karakter." },
       { status: 400 },
+    );
+  }
+
+  if (!(await canManageRole(access.user, [roleId]))) {
+    return NextResponse.json(
+      { message: "Hanya Super Admin yang dapat mengelola akun dengan role tersebut." },
+      { status: 403 },
     );
   }
 

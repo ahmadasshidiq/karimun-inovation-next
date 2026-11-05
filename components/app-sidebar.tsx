@@ -178,7 +178,7 @@ const menuItems: SidebarItem[] = [
       {
         title: "Akun",
         href: "/settings/accounts",
-        access: { model: "users", action: "get-by-id" },
+        access: { model: "users", action: "get-all" },
       },
       {
         title: "Pengumuman",

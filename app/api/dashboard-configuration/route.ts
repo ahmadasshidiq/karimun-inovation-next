@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { getAuthenticatedUser, requirePermission } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -11,8 +11,8 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("dashboard-configurations", "update");
+  if (!access.user) return access.response;
   const payload = (await request.json()) as { countdownTarget?: string; countdownActive?: boolean };
   const target = payload.countdownTarget ? new Date(payload.countdownTarget) : null;
   if (!target || Number.isNaN(target.getTime()))
