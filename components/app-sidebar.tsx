@@ -66,6 +66,7 @@ export type SessionUser = {
   permission: { all?: boolean } | Array<{ model: string; actions: string[] }>;
   institution: string;
   nomenclature: string;
+  innovationCategory: string | null;
 };
 
 type SessionContextValue = {
@@ -391,7 +392,7 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
     );
     return (
       !category ||
-      canAccessInnovationCategory(user?.nomenclature, category)
+      canAccessInnovationCategory(user?.innovationCategory, category)
     );
   };
 

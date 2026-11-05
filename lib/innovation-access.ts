@@ -55,7 +55,7 @@ export const innovationOwnerScope = (user: AuthenticatedUser) => ({
 });
 
 export const userInnovationCategory = (user: AuthenticatedUser) =>
-  allowedInnovationCategory(user.institution.nomenclature.name);
+  allowedInnovationCategory(user.institution.nomenclatureId);
 
 export const innovationCategoryScope = (user: AuthenticatedUser) => {
   const category = userInnovationCategory(user);

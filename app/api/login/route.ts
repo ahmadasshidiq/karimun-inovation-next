@@ -11,6 +11,7 @@ import {
   getLoginBlockSeconds,
   recordLoginFailure,
 } from "@/lib/login-rate-limit";
+import { allowedInnovationCategory } from "@/lib/innovation-category";
 import { prisma } from "@/lib/prisma";
 
 type LoginBody = {
@@ -147,6 +148,9 @@ export async function POST(request: Request) {
         permission: user.role.permission,
         institution: user.institution.name,
         nomenclature: user.institution.nomenclature.name,
+        innovationCategory: allowedInnovationCategory(
+          user.institution.nomenclatureId,
+        ),
       },
     });
 

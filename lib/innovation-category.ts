@@ -1,24 +1,28 @@
-export const SYSTEM_ADMIN_NOMENCLATURE = "Administrator Sistem";
+const categoryEnvKeys = {
+  "perangkat-daerah": "NOMENCLATURE_PERANGKAT_DAERAH_ID",
+  kecamatan: "NOMENCLATURE_KECAMATAN_ID",
+  kelurahan: "NOMENCLATURE_KELURAHAN_ID",
+  "upt-puskesmas": "NOMENCLATURE_UPT_PUSKESMAS_ID",
+  "satuan-pendidikan": "NOMENCLATURE_SATUAN_PENDIDIKAN_ID",
+} as const;
 
-export const nomenclatureToCategory = (name: string) =>
-  name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+const envValue = (key: string) => process.env[key]?.trim() || "";
 
-export const isSystemAdminNomenclature = (name?: string | null) =>
-  name?.trim() === SYSTEM_ADMIN_NOMENCLATURE;
+export const isSystemAdminNomenclature = (nomenclatureId: string) =>
+  Boolean(envValue("NOMENCLATURE_ADMIN_ID")) &&
+  nomenclatureId === envValue("NOMENCLATURE_ADMIN_ID");
 
-export const allowedInnovationCategory = (nomenclature?: string | null) =>
-  isSystemAdminNomenclature(nomenclature)
-    ? null
-    : nomenclatureToCategory(nomenclature ?? "");
+export const allowedInnovationCategory = (nomenclatureId: string) => {
+  if (isSystemAdminNomenclature(nomenclatureId)) return null;
+
+  const match = Object.entries(categoryEnvKeys).find(
+    ([, envKey]) => envValue(envKey) && envValue(envKey) === nomenclatureId,
+  );
+
+  return match ? match[0] : "";
+};
 
 export const canAccessInnovationCategory = (
-  nomenclature: string | null | undefined,
+  allowedCategory: string | null | undefined,
   category: string,
-) => {
-  const allowed = allowedInnovationCategory(nomenclature);
-  return allowed === null || allowed === category;
-};
+) => allowedCategory === null || allowedCategory === category;

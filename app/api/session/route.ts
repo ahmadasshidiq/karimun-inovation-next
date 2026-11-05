@@ -2,6 +2,7 @@ import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { allowedInnovationCategory } from "@/lib/innovation-category";
 import { prisma } from "@/lib/prisma";
 
 const unauthorized = () =>
@@ -48,6 +49,9 @@ export async function GET() {
         permission: user.role.permission,
         institution: user.institution.name,
         nomenclature: user.institution.nomenclature.name,
+        innovationCategory: allowedInnovationCategory(
+          user.institution.nomenclatureId,
+        ),
       },
     });
   } catch {
