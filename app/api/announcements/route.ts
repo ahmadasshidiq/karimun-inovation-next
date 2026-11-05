@@ -9,8 +9,6 @@ const dateOnly = (value: Date) => value.toISOString().slice(0, 10);
 export async function GET(request: NextRequest) {
   const dashboard = request.nextUrl.searchParams.get("dashboard") === "true";
 
-  // Pengumuman aktif di dashboard boleh dibaca semua user yang login;
-  // daftar lengkap (termasuk nonaktif) hanya untuk pengelola pengumuman.
   if (dashboard) {
     if (!(await getAuthenticatedUser()))
       return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });

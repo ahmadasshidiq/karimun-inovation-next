@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 
-// CSP berbasis nonce di-set per request pada proxy.ts.
 const securityHeaders = [
   {
     key: "Strict-Transport-Security",

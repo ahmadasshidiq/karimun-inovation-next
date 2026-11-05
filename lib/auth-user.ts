@@ -33,10 +33,6 @@ export async function getAuthenticatedUser() {
   }
 }
 
-/**
- * Memastikan user login dan memiliki permission `model:action`.
- * Jika tidak, `response` berisi 401/403 yang langsung dikembalikan route.
- */
 export async function requirePermission(model: string, action: string) {
   const user = await getAuthenticatedUser();
 
@@ -73,10 +69,6 @@ const isPrivilegedRole = (role: { name: string; permission: unknown }) =>
     role.permission !== null &&
     (role.permission as { all?: unknown }).all === true);
 
-/**
- * Hanya Super Admin yang boleh memberikan role berhak penuh atau mengelola
- * akun yang memiliki role tersebut. Mencegah eskalasi hak akses.
- */
 export async function canManageRole(
   actor: AuthenticatedUser,
   roleIds: string[],

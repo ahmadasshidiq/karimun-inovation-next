@@ -1,5 +1,3 @@
-// Hanya pesan validasi buatan sendiri yang boleh dikirim ke client.
-// Error database/sistem dicatat di server dan diganti pesan umum.
 export function clientErrorMessage(error: unknown, fallback: string) {
   if (!(error instanceof Error)) return fallback;
 

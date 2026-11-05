@@ -33,7 +33,6 @@ function buildContentSecurityPolicy(nonce: string) {
 }
 
 export async function proxy(request: NextRequest) {
-  // Nonce baru per request agar CSP tidak perlu 'unsafe-inline' untuk script.
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const contentSecurityPolicy = buildContentSecurityPolicy(nonce);
   const requestHeaders = new Headers(request.headers);
@@ -119,7 +118,6 @@ async function handleAuth(request: NextRequest, requestHeaders: Headers) {
 export const config = {
   matcher: [
     {
-      // Semua halaman, kecuali API, aset statis, dan prefetch next/link.
       source: "/((?!api|_next/static|_next/image|favicon.ico|images/).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },

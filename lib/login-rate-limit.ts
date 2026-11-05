@@ -1,7 +1,3 @@
-// Pembatasan percobaan login (in-memory, per proses server).
-// Cukup untuk satu instance; jika aplikasi dijalankan lebih dari satu
-// instance, pindahkan penyimpanan ke Redis/database.
-
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILURES_PER_IDENTIFIER = 5;
 const MAX_FAILURES_PER_IP = 20;
@@ -37,7 +33,6 @@ const keysFor = (identifier: string, ip: string) => ({
   ipKey: `ip:${ip}`,
 });
 
-/** Mengembalikan sisa detik blokir, atau 0 jika boleh mencoba login. */
 export function getLoginBlockSeconds(identifier: string, ip: string) {
   const now = Date.now();
   const { identifierKey, ipKey } = keysFor(identifier, ip);
