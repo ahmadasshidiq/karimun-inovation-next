@@ -13,7 +13,48 @@ const protectedPrefixes = [
   "/pengaturan",
 ];
 
+const isDev = process.env.NODE_ENV !== "production";
+
+function buildContentSecurityPolicy(nonce: string) {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+    "media-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ].join("; ");
+}
+
 export async function proxy(request: NextRequest) {
+  // Nonce baru per request agar CSP tidak perlu 'unsafe-inline' untuk script.
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const contentSecurityPolicy = buildContentSecurityPolicy(nonce);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
+
+  const response = await handleAuth(request, requestHeaders);
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+  return response;
+}
+
+async function handleAuth(request: NextRequest, requestHeaders: Headers) {
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute =
+    pathname === "/login" ||
+    protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
+
+  if (!isAuthRoute) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   const token = request.cookies.get("auth_token")?.value;
   const jwtSecret = process.env["JWT_SECRET"];
   let authenticated = false;
@@ -55,7 +96,7 @@ export async function proxy(request: NextRequest) {
       loginUrl.searchParams.set("reason", "session_expired");
       response = NextResponse.redirect(loginUrl);
     } else {
-      response = NextResponse.next();
+      response = NextResponse.next({ request: { headers: requestHeaders } });
     }
 
     response.cookies.delete("auth_token");
@@ -72,16 +113,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.next();
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {
   matcher: [
-    "/login",
-    "/dashboard/:path*",
-    "/innovations/:path*",
-    "/lomba-inovasi/:path*",
-    "/laporan-diklat/:path*",
-    "/pengaturan/:path*",
+    {
+      // Semua halaman, kecuali API, aset statis, dan prefetch next/link.
+      source: "/((?!api|_next/static|_next/image|favicon.ico|images/).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
   ],
 };
