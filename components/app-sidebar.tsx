@@ -54,6 +54,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toast";
+import { canAccessInnovationCategory } from "@/lib/innovation-category";
 import { cn } from "@/lib/utils";
 
 export type SessionUser = {
@@ -384,9 +385,21 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
     [user],
   );
 
+  const hasCategoryAccess = (href: string) => {
+    const category = new URL(href, "http://localhost").searchParams.get(
+      "category",
+    );
+    return (
+      !category ||
+      canAccessInnovationCategory(user?.nomenclature, category)
+    );
+  };
+
   const accessibleMenuItems = menuItems.flatMap((item) => {
     if (item.children) {
-      const children = item.children.filter((child) => hasAccess(child.access));
+      const children = item.children.filter(
+        (child) => hasAccess(child.access) && hasCategoryAccess(child.href),
+      );
       return children.length ? [{ ...item, children }] : [];
     }
 

@@ -5,7 +5,10 @@ import {
   getSubmitBlockMessage,
   resolveSubmissionStatus,
 } from "@/lib/innovation-completeness";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import {
+  innovationOwnerScope,
+  userInnovationCategory,
+} from "@/lib/innovation-access";
 import { isCertificateEligible } from "@/lib/innovation-certificate";
 import {
   getAssessmentScore,
@@ -62,6 +65,14 @@ export async function GET(request: NextRequest) {
   const governmentAffair = filterValue("governmentAffair");
   const initiator = filterValue("initiator");
   const stage = filterValue("stage");
+
+  const allowedCategory = userInnovationCategory(user);
+  if (allowedCategory !== null && category && category !== allowedCategory) {
+    return NextResponse.json(
+      { message: "Anda tidak memiliki akses ke kategori inovasi ini." },
+      { status: 403 },
+    );
+  }
 
   const baseWhere = {
     deletedAt: null,
@@ -298,6 +309,16 @@ async function handlePost(request: NextRequest) {
     }
 
     const payload = JSON.parse(rawPayload) as Record<string, unknown>;
+    const allowedCategory = userInnovationCategory(user);
+    if (
+      allowedCategory !== null &&
+      String(payload.category || "") !== allowedCategory
+    ) {
+      return NextResponse.json(
+        { message: "Anda tidak memiliki akses ke kategori inovasi ini." },
+        { status: 403 },
+      );
+    }
     if (!String(payload.name || "").trim()) {
       return NextResponse.json({ message: "Nama inovasi wajib diisi." }, { status: 400 });
     }

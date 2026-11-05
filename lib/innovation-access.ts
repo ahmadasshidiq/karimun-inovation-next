@@ -1,13 +1,17 @@
 import type { getAuthenticatedUser } from "@/lib/auth-user";
+import { allowedInnovationCategory } from "@/lib/innovation-category";
 
-type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getAuthenticatedUser>>>;
+type AuthenticatedUser = NonNullable<
+  Awaited<ReturnType<typeof getAuthenticatedUser>>
+>;
 
 const globalRoleIds = () =>
   new Set(
     [
       process.env.INNOVATION_ROLE_SUPERADMIN_ID,
       process.env.INNOVATION_ROLE_ADMIN_ID,
-    ].filter((value): value is string => Boolean(value?.trim()))
+    ]
+      .filter((value): value is string => Boolean(value?.trim()))
       .map((value) => value.trim()),
   );
 
@@ -20,7 +24,7 @@ export const isSuperAdmin = (user: AuthenticatedUser) =>
 
 // Super admin melihat semua inovasi. Co-admin hanya melihat inovasi instansi lain
 // yang sudah dikirim (draft/belum lengkap tetap tersembunyi).
-export const innovationOwnerScope = (user: AuthenticatedUser) => {
+const baseOwnerScope = (user: AuthenticatedUser) => {
   if (isSuperAdmin(user)) return {};
   if (canAccessAllInnovations(user)) {
     return {
@@ -44,3 +48,16 @@ export const innovationVisibilityScope = (user: AuthenticatedUser) =>
           { submissionStatus: "SUBMITTED" },
         ],
       };
+
+export const innovationOwnerScope = (user: AuthenticatedUser) => ({
+  ...baseOwnerScope(user),
+  ...innovationCategoryScope(user),
+});
+
+export const userInnovationCategory = (user: AuthenticatedUser) =>
+  allowedInnovationCategory(user.institution.nomenclature.name);
+
+export const innovationCategoryScope = (user: AuthenticatedUser) => {
+  const category = userInnovationCategory(user);
+  return category === null ? {} : { category };
+};

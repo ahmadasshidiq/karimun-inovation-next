@@ -26,7 +26,10 @@ export async function getAuthenticatedUser() {
         status: "ACTIVE",
         deletedAt: null,
       },
-      include: { institution: true, role: true },
+      include: {
+        institution: { include: { nomenclature: true } },
+        role: true,
+      },
     });
   } catch {
     return null;

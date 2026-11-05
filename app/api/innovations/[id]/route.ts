@@ -6,7 +6,10 @@ import {
   getSubmitBlockMessage,
   resolveSubmissionStatus,
 } from "@/lib/innovation-completeness";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import {
+  innovationOwnerScope,
+  userInnovationCategory,
+} from "@/lib/innovation-access";
 import { prisma } from "@/lib/prisma";
 import { withAudit } from "@/lib/audit-log";
 
@@ -79,6 +82,16 @@ async function handlePut(
 
   try {
     const payload = (await request.json()) as Record<string, unknown>;
+    const allowedCategory = userInnovationCategory(user);
+    if (
+      allowedCategory !== null &&
+      String(payload.category || "") !== allowedCategory
+    ) {
+      return NextResponse.json(
+        { message: "Anda tidak memiliki akses ke kategori inovasi ini." },
+        { status: 403 },
+      );
+    }
     if (!String(payload.name || "").trim()) {
       return NextResponse.json({ message: "Nama inovasi wajib diisi." }, { status: 400 });
     }
