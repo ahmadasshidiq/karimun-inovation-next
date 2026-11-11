@@ -147,36 +147,37 @@ function AnnouncementPanel({
         <Megaphone className="size-5" />
         Pengumuman
       </h2>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-        {announcements.map((announcement) => (
-          <button
-            type="button"
-            key={announcement.id}
-            onClick={() => setSelectedAnnouncement(announcement)}
-            className="flex w-full items-center gap-3 rounded-md bg-neutral-100 px-3 py-2.5 text-left transition-colors hover:bg-blue-50"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-semibold">
-                {announcement.title}
-              </p>
-              <p className="mt-0.5 text-[10px] text-neutral-500">
-                {new Intl.DateTimeFormat("id-ID", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                }).format(
-                  new Date(`${announcement.announcementDate}T00:00:00`),
-                )}
-              </p>
-            </div>
-            <Mail className="size-4 shrink-0 text-[#4f71ff]" />
-          </button>
-        ))}
-      </div>
-      {announcements.length === 0 && (
-        <p className="py-8 text-center text-xs text-slate-500">
+      {announcements.length === 0 ? (
+        <div className="flex min-h-64 flex-1 items-center justify-center rounded-lg bg-slate-50 px-6 text-center text-xs text-slate-500">
           Belum ada pengumuman aktif.
-        </p>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+          {announcements.map((announcement) => (
+            <button
+              type="button"
+              key={announcement.id}
+              onClick={() => setSelectedAnnouncement(announcement)}
+              className="flex w-full items-center gap-3 rounded-md bg-neutral-100 px-3 py-2.5 text-left transition-colors hover:bg-blue-50"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] font-semibold">
+                  {announcement.title}
+                </p>
+                <p className="mt-0.5 text-[10px] text-neutral-500">
+                  {new Intl.DateTimeFormat("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }).format(
+                    new Date(`${announcement.announcementDate}T00:00:00`),
+                  )}
+                </p>
+              </div>
+              <Mail className="size-4 shrink-0 text-[#4f71ff]" />
+            </button>
+          ))}
+        </div>
       )}
       <Dialog
         open={Boolean(selectedAnnouncement)}
