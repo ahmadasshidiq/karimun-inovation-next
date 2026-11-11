@@ -21,3 +21,13 @@ export const hasPermission = (
       (item as { actions: unknown[] }).actions.includes(action),
   );
 };
+
+export const isPermissionSubset = (
+  actorPermission: unknown,
+  permissions: { model: string; actions: string[] }[],
+) =>
+  permissions.every((item) =>
+    item.actions.every((action) =>
+      hasPermission(actorPermission, item.model, action),
+    ),
+  );

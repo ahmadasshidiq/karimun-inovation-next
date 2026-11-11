@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { requirePermission } from "@/lib/auth-user";
 import { MASTER_PERMISSIONS } from "@/lib/master-permission";
+import { isPermissionSubset } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
 import { withAudit } from "@/lib/audit-log";
-
-const isSuperAdmin = (user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
-  user?.role.name === "Super Admin";
 
 const normalizePermissions = (value: unknown) => {
   if (!Array.isArray(value)) return [];
@@ -29,8 +27,8 @@ const normalizePermissions = (value: unknown) => {
 };
 
 export async function GET(request: NextRequest) {
-  if (!isSuperAdmin(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("roles", "get-all");
+  if (!access.user) return access.response;
 
   const page = Math.max(1, Number(request.nextUrl.searchParams.get("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(request.nextUrl.searchParams.get("limit")) || 10));
@@ -52,8 +50,8 @@ export async function GET(request: NextRequest) {
 }
 
 async function handlePost(request: NextRequest) {
-  if (!isSuperAdmin(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("roles", "create");
+  if (!access.user) return access.response;
 
   const payload = (await request.json()) as { name?: string; permission?: unknown };
   const name = payload.name?.trim();
@@ -66,8 +64,15 @@ async function handlePost(request: NextRequest) {
   if (duplicate)
     return NextResponse.json({ message: "Nama role sudah digunakan." }, { status: 409 });
 
+  const permission = normalizePermissions(payload.permission);
+  if (!isPermissionSubset(access.user.role.permission, permission))
+    return NextResponse.json(
+      { message: "Anda tidak dapat memberikan akses melebihi akses Anda sendiri." },
+      { status: 403 },
+    );
+
   const role = await prisma.role.create({
-    data: { name, permission: normalizePermissions(payload.permission) },
+    data: { name, permission },
   });
   return NextResponse.json({ message: "Role berhasil dibuat.", data: role }, { status: 201 });
 }

@@ -1,13 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuthenticatedUser } from "@/lib/auth-user";
+import { isPrivilegedRole, isPrivilegedUser, requirePermission } from "@/lib/auth-user";
 import { MASTER_PERMISSIONS } from "@/lib/master-permission";
+import { isPermissionSubset } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
 import { withAudit } from "@/lib/audit-log";
-
-const isSuperAdmin = (user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
-  user?.role.name === "Super Admin";
 
 const normalizePermissions = (value: unknown) => {
   if (!Array.isArray(value)) return [];
@@ -28,8 +26,8 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!isSuperAdmin(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("roles", "get-by-id");
+  if (!access.user) return access.response;
   const { id } = await context.params;
   const role = await prisma.role.findUnique({ where: { id } });
   if (!role)
@@ -41,8 +39,8 @@ async function handlePut(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!isSuperAdmin(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("roles", "update");
+  if (!access.user) return access.response;
   const { id } = await context.params;
   const payload = (await request.json()) as { name?: string; permission?: unknown };
   const name = payload.name?.trim();
@@ -52,6 +50,23 @@ async function handlePut(
   const role = await prisma.role.findUnique({ where: { id } });
   if (!role)
     return NextResponse.json({ message: "Role tidak ditemukan." }, { status: 404 });
+  const privilegedActor = isPrivilegedUser(access.user);
+  if (!privilegedActor && (isPrivilegedRole(role) || role.id === access.user.roleId))
+    return NextResponse.json(
+      { message: "Anda tidak dapat mengubah role ini." },
+      { status: 403 },
+    );
+  const permission = isPrivilegedRole(role)
+    ? { all: true }
+    : normalizePermissions(payload.permission);
+  if (
+    !privilegedActor &&
+    !isPermissionSubset(access.user.role.permission, permission as { model: string; actions: string[] }[])
+  )
+    return NextResponse.json(
+      { message: "Anda tidak dapat memberikan akses melebihi akses Anda sendiri." },
+      { status: 403 },
+    );
   const duplicate = await prisma.role.findFirst({
     where: { id: { not: id }, name: { equals: name, mode: "insensitive" } },
   });
@@ -62,8 +77,7 @@ async function handlePut(
     where: { id },
     data: {
       name,
-      permission:
-        role.name === "Super Admin" ? { all: true } : normalizePermissions(payload.permission),
+      permission,
     },
   });
   return NextResponse.json({ message: "Role berhasil diperbarui.", data });
@@ -73,14 +87,16 @@ async function handleDelete(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!isSuperAdmin(await getAuthenticatedUser()))
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  const access = await requirePermission("roles", "delete");
+  if (!access.user) return access.response;
   const { id } = await context.params;
   const role = await prisma.role.findUnique({ where: { id } });
   if (!role)
     return NextResponse.json({ message: "Role tidak ditemukan." }, { status: 404 });
-  if (role.name === "Super Admin")
+  if (isPrivilegedRole(role))
     return NextResponse.json({ message: "Role Super Admin tidak dapat dihapus." }, { status: 400 });
+  if (role.id === access.user.roleId)
+    return NextResponse.json({ message: "Role yang sedang Anda gunakan tidak dapat dihapus." }, { status: 400 });
 
   try {
     await prisma.role.delete({ where: { id } });

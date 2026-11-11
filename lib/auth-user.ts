@@ -2,7 +2,7 @@ import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { hasPermission } from "@/lib/permission";
+import { hasPermission, isPermissionSubset } from "@/lib/permission";
 import { prisma } from "@/lib/prisma";
 
 export async function getAuthenticatedUser() {
@@ -66,11 +66,14 @@ type AuthenticatedUser = NonNullable<
   Awaited<ReturnType<typeof getAuthenticatedUser>>
 >;
 
-const isPrivilegedRole = (role: { name: string; permission: unknown }) =>
-  role.name === "Super Admin" ||
-  (typeof role.permission === "object" &&
-    role.permission !== null &&
-    (role.permission as { all?: unknown }).all === true);
+export const isPrivilegedRole = (role: { permission: unknown }) =>
+  typeof role.permission === "object" &&
+  role.permission !== null &&
+  !Array.isArray(role.permission) &&
+  (role.permission as { all?: unknown }).all === true;
+
+export const isPrivilegedUser = (user: AuthenticatedUser) =>
+  isPrivilegedRole(user.role);
 
 export async function canManageRole(
   actor: AuthenticatedUser,
@@ -83,5 +86,13 @@ export async function canManageRole(
     select: { name: true, permission: true },
   });
 
-  return !roles.some(isPrivilegedRole);
+  return roles.every(
+    (role) =>
+      !isPrivilegedRole(role) &&
+      Array.isArray(role.permission) &&
+      isPermissionSubset(
+        actor.role.permission,
+        role.permission as { model: string; actions: string[] }[],
+      ),
+  );
 }

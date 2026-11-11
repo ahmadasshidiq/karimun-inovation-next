@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import { innovationEditScope } from "@/lib/innovation-access";
 import {
   getMissingMandatoryIndicators,
   MANDATORY_INDICATOR_IDS,
@@ -53,7 +53,7 @@ async function handlePost(
 
   const { id } = await context.params;
   const innovation = await prisma.innovation.findFirst({
-    where: { id, deletedAt: null, ...innovationOwnerScope(user) },
+    where: { id, deletedAt: null, ...innovationEditScope(user) },
     select: {
       id: true,
       indicatorAssessments: {

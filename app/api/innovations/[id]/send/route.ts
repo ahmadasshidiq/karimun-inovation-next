@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import { innovationEditScope } from "@/lib/innovation-access";
+import { hasPermission } from "@/lib/permission";
 import {
   findMissingIndicatorNames,
   getSubmitBlockMessage,
@@ -18,10 +19,16 @@ async function handlePost(
   if (!user) {
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
   }
+  if (!hasPermission(user.role.permission, "innovations", "update")) {
+    return NextResponse.json(
+      { message: "Anda tidak memiliki akses untuk tindakan ini." },
+      { status: 403 },
+    );
+  }
 
   const { id } = await context.params;
   const innovation = await prisma.innovation.findFirst({
-    where: { id, deletedAt: null, ...innovationOwnerScope(user) },
+    where: { id, deletedAt: null, ...innovationEditScope(user) },
   });
   if (!innovation) {
     return NextResponse.json(

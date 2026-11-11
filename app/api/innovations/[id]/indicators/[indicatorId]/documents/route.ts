@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import { innovationEditScope } from "@/lib/innovation-access";
+import { hasPermission } from "@/lib/permission";
 import { resetIndicatorReview } from "@/lib/innovation-indicator";
 import { ensureMinioBucket, getMinioClient, minioBucket, minioPublicUrl } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,25 @@ const INDICATOR_FILE_TYPES: Record<number, string[]> = {
   20: ["MP4", "JPG", "JPEG", "PNG"],
 };
 
+const startsWith = (bytes: Uint8Array, signature: number[], offset = 0) =>
+  signature.every((value, index) => bytes[offset + index] === value);
+
+const hasValidFileSignature = (bytes: Uint8Array, mimeType: string) => {
+  if (mimeType === "application/pdf") {
+    return startsWith(bytes, [0x25, 0x50, 0x44, 0x46, 0x2d]);
+  }
+  if (mimeType === "image/jpeg") {
+    return startsWith(bytes, [0xff, 0xd8, 0xff]);
+  }
+  if (mimeType === "image/png") {
+    return startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  }
+  if (mimeType === "video/mp4") {
+    return startsWith(bytes, [0x66, 0x74, 0x79, 0x70], 4);
+  }
+  return false;
+};
+
 async function handlePost(
   request: NextRequest,
   context: { params: Promise<{ id: string; indicatorId: string }> },
@@ -34,6 +54,11 @@ async function handlePost(
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!hasPermission(user.role.permission, "innovation-documents", "upload"))
+    return NextResponse.json(
+      { message: "Anda tidak memiliki akses untuk tindakan ini." },
+      { status: 403 },
+    );
 
   const { id, indicatorId: rawIndicatorId } = await context.params;
   const indicatorId = Number(rawIndicatorId);
@@ -44,7 +69,7 @@ async function handlePost(
     where: {
       id,
       deletedAt: null,
-      ...innovationOwnerScope(user),
+      ...innovationEditScope(user),
     },
     select: { id: true },
   });
@@ -74,6 +99,13 @@ async function handlePost(
       { status: 400 },
     );
 
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!hasValidFileSignature(buffer, file.type))
+    return NextResponse.json(
+      { message: "Isi berkas tidak sesuai dengan format file." },
+      { status: 400 },
+    );
+
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
   const objectName = `innovations/${id}/indicators/${indicatorId}/${crypto.randomUUID()}-${safeName}`;
 
@@ -83,8 +115,8 @@ async function handlePost(
     await minio.putObject(
       minioBucket,
       objectName,
-      Buffer.from(await file.arrayBuffer()),
-      file.size,
+      buffer,
+      buffer.length,
       { "Content-Type": file.type },
     );
 

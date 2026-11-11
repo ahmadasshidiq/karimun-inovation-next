@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
-import { innovationOwnerScope } from "@/lib/innovation-access";
+import { innovationEditScope } from "@/lib/innovation-access";
 import {
   SUBMISSION_PERMISSION_MODELS,
   SUBMISSION_STATUSES,
@@ -25,7 +25,7 @@ async function handleDelete(
   const submission = await prisma.innovationSubmission.findFirst({
     where: {
       id,
-      innovation: { deletedAt: null, ...innovationOwnerScope(user) },
+      innovation: { deletedAt: null, ...innovationEditScope(user) },
     },
     select: {
       track: true,

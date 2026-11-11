@@ -3,9 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
 import {
+  innovationEditScope,
   innovationOwnerScope,
   innovationVisibilityScope,
 } from "@/lib/innovation-access";
+import { hasPermission } from "@/lib/permission";
 import {
   canReviewIndicators,
   VIDEO_INDICATOR_ID,
@@ -36,7 +38,9 @@ const findDocument = (
                 (canReviewIndicators(user.role.permission) ||
                   Number(indicatorId) === VIDEO_INDICATOR_ID)
                   ? innovationVisibilityScope(user)
-                  : innovationOwnerScope(user),
+                  : allowReviewer
+                    ? innovationOwnerScope(user)
+                    : innovationEditScope(user),
             }
           : {}),
       },
@@ -54,6 +58,15 @@ export async function GET(
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 
   const { id, indicatorId, documentId } = await context.params;
+  if (
+    !canReviewIndicators(user.role.permission) &&
+    Number(indicatorId) !== VIDEO_INDICATOR_ID &&
+    !hasPermission(user.role.permission, "innovation-documents", "download")
+  )
+    return NextResponse.json(
+      { message: "Anda tidak memiliki akses untuk tindakan ini." },
+      { status: 403 },
+    );
   const document = await findDocument(id, indicatorId, documentId, user, true);
   if (!document)
     return NextResponse.json(
@@ -90,6 +103,12 @@ async function handleDelete(
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+
+  if (!hasPermission(user.role.permission, "innovation-documents", "delete"))
+    return NextResponse.json(
+      { message: "Anda tidak memiliki akses untuk tindakan ini." },
+      { status: 403 },
+    );
 
   const { id, indicatorId, documentId } = await context.params;
   const document = await findDocument(id, indicatorId, documentId, user);

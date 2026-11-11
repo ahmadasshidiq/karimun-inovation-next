@@ -3,9 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-user";
 import { syncInnovationSubmissionStatus } from "@/lib/innovation-completeness";
 import {
+  innovationEditScope,
   innovationOwnerScope,
   innovationVisibilityScope,
 } from "@/lib/innovation-access";
+import { hasPermission } from "@/lib/permission";
 import {
   canReviewIndicators,
   getAssessmentScore,
@@ -24,6 +26,14 @@ export async function GET(
 
   const { id } = await context.params;
   const canReview = canReviewIndicators(user.role.permission);
+  if (
+    !canReview &&
+    !hasPermission(user.role.permission, "innovation-indicators", "get-all")
+  )
+    return NextResponse.json(
+      { message: "Anda tidak memiliki akses untuk tindakan ini." },
+      { status: 403 },
+    );
   const data = await prisma.innovationIndicatorAssessment.findMany({
     where: {
       innovationId: id,
@@ -76,6 +86,11 @@ async function handlePut(
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!hasPermission(user.role.permission, "innovation-indicators", "update"))
+    return NextResponse.json(
+      { message: "Anda tidak memiliki akses untuk tindakan ini." },
+      { status: 403 },
+    );
 
   const { id } = await context.params;
   const payload = (await request.json()) as {
@@ -83,14 +98,19 @@ async function handlePut(
     parameter?: string;
     score?: number;
   };
-  if (!payload.indicatorId || !payload.parameter?.trim())
+  if (
+    !Number.isInteger(payload.indicatorId) ||
+    !payload.indicatorId ||
+    typeof payload.parameter !== "string" ||
+    !payload.parameter.trim()
+  )
     return NextResponse.json({ message: "Parameter indikator tidak valid." }, { status: 400 });
 
   const innovation = await prisma.innovation.findFirst({
     where: {
       id,
       deletedAt: null,
-      ...innovationOwnerScope(user),
+      ...innovationEditScope(user),
     },
     select: { id: true },
   });

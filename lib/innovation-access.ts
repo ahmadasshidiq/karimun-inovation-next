@@ -54,6 +54,13 @@ export const innovationOwnerScope = (user: AuthenticatedUser) => ({
   ...innovationCategoryScope(user),
 });
 
+export const innovationEditScope = (user: AuthenticatedUser) => ({
+  ...(isSuperAdmin(user)
+    ? {}
+    : { createdBy: { institutionId: user.institutionId } }),
+  ...innovationCategoryScope(user),
+});
+
 export const userInnovationCategory = (user: AuthenticatedUser) =>
   allowedInnovationCategory(user.institution.nomenclatureId);
 

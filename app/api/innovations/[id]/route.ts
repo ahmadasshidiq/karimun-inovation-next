@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthenticatedUser } from "@/lib/auth-user";
+import { hasPermission } from "@/lib/permission";
 import {
   findMissingIndicatorNames,
   getSubmitBlockMessage,
   resolveSubmissionStatus,
 } from "@/lib/innovation-completeness";
 import {
+  innovationEditScope,
   innovationOwnerScope,
   userInnovationCategory,
 } from "@/lib/innovation-access";
@@ -38,12 +40,26 @@ const serialize = (item: Awaited<ReturnType<typeof findInnovation>>) => {
   };
 };
 
-const findInnovation = (id: string, user: Awaited<ReturnType<typeof getAuthenticatedUser>>) =>
+type AuthenticatedUser = NonNullable<
+  Awaited<ReturnType<typeof getAuthenticatedUser>>
+>;
+
+const forbidden = () =>
+  NextResponse.json(
+    { message: "Anda tidak memiliki akses untuk tindakan ini." },
+    { status: 403 },
+  );
+
+const findInnovation = (
+  id: string,
+  user: AuthenticatedUser,
+  scope: (user: AuthenticatedUser) => object = innovationOwnerScope,
+) =>
   prisma.innovation.findFirst({
     where: {
       id,
       deletedAt: null,
-      ...(user ? innovationOwnerScope(user) : {}),
+      ...scope(user),
     },
     include: {
       createdBy: {
@@ -59,6 +75,8 @@ export async function GET(
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!hasPermission(user.role.permission, "innovations", "get-by-id"))
+    return forbidden();
 
   const { id } = await context.params;
   const item = await findInnovation(id, user);
@@ -75,9 +93,11 @@ async function handlePut(
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!hasPermission(user.role.permission, "innovations", "update"))
+    return forbidden();
 
   const { id } = await context.params;
-  if (!(await findInnovation(id, user)))
+  if (!(await findInnovation(id, user, innovationEditScope)))
     return NextResponse.json({ message: "Inovasi tidak ditemukan." }, { status: 404 });
 
   try {
@@ -154,13 +174,15 @@ async function handleDelete(
   const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
+  if (!hasPermission(user.role.permission, "innovations", "delete"))
+    return forbidden();
 
   const { id } = await context.params;
   const result = await prisma.innovation.updateMany({
     where: {
       id,
       deletedAt: null,
-      ...innovationOwnerScope(user),
+      ...innovationEditScope(user),
     },
     data: { deletedAt: new Date() },
   });
