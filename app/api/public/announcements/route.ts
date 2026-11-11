@@ -40,7 +40,7 @@ const parsePositiveInteger = (value: string | null, fallback: number, max: numbe
 };
 
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = checkPublicApiRateLimit(request);
+  const rateLimitResponse = await checkPublicApiRateLimit(request);
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

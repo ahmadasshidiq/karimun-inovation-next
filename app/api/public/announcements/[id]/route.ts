@@ -18,7 +18,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const rateLimitResponse = checkPublicApiRateLimit(request);
+  const rateLimitResponse = await checkPublicApiRateLimit(request);
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

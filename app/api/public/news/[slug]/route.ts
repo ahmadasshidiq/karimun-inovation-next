@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { checkPublicApiRateLimit, methodNotAllowed, optionsResponse, publicJson } from "@/lib/public-api";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const rateLimitResponse = checkPublicApiRateLimit(request);
+  const rateLimitResponse = await checkPublicApiRateLimit(request);
   if (rateLimitResponse) return rateLimitResponse;
   try {
     const { slug } = await params;

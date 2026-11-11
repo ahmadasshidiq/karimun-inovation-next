@@ -52,7 +52,7 @@ async function handlePut(request: NextRequest) {
   }
 
   const ip = getClientIp(request);
-  const blockSeconds = getLoginBlockSeconds(user.username, ip);
+  const blockSeconds = await getLoginBlockSeconds(user.username, ip);
   if (blockSeconds > 0) {
     return NextResponse.json(
       {
@@ -63,7 +63,7 @@ async function handlePut(request: NextRequest) {
   }
 
   if (!isPasswordMatch(currentPassword, user.salt, user.password)) {
-    recordLoginFailure(user.username, ip);
+    await recordLoginFailure(user.username, ip);
     return NextResponse.json(
       { message: "Password lama tidak sesuai." },
       { status: 400 },

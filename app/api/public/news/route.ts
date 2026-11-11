@@ -10,7 +10,7 @@ const positiveInteger = (value: string | null, fallback: number, maximum: number
 };
 
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = checkPublicApiRateLimit(request);
+  const rateLimitResponse = await checkPublicApiRateLimit(request);
   if (rateLimitResponse) return rateLimitResponse;
   try {
     const page = positiveInteger(request.nextUrl.searchParams.get("page"), 1, Number.MAX_SAFE_INTEGER);

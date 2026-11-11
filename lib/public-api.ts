@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  getClientIp,
+  incrementRateLimit,
+  UNKNOWN_IP,
+} from "@/lib/login-rate-limit";
+
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 60;
-
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
-
-const globalForPublicApi = globalThis as typeof globalThis & {
-  publicAnnouncementRateLimit?: Map<string, RateLimitEntry>;
-};
-
-const rateLimits =
-  globalForPublicApi.publicAnnouncementRateLimit ?? new Map<string, RateLimitEntry>();
-
-globalForPublicApi.publicAnnouncementRateLimit = rateLimits;
 
 const allowedOrigins = () =>
   (process.env.PUBLIC_API_ALLOWED_ORIGINS ?? "")
@@ -60,21 +52,16 @@ export const methodNotAllowed = (request: NextRequest) =>
 export const optionsResponse = (request: NextRequest) =>
   new NextResponse(null, { status: 204, headers: publicApiHeaders(request) });
 
-export const checkPublicApiRateLimit = (request: NextRequest) => {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const key = forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
-  const now = Date.now();
-  const entry = rateLimits.get(key);
+export const checkPublicApiRateLimit = async (request: NextRequest) => {
+  const ip = getClientIp(request);
+  if (ip === UNKNOWN_IP) return null;
 
-  if (!entry || entry.resetAt <= now) {
-    rateLimits.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return null;
-  }
+  const entry = await incrementRateLimit(`public:ip:${ip}`, WINDOW_MS).catch(
+    () => null,
+  );
+  if (!entry || entry.count <= MAX_REQUESTS) return null;
 
-  entry.count += 1;
-  if (entry.count <= MAX_REQUESTS) return null;
-
-  const retryAfter = Math.max(1, Math.ceil((entry.resetAt - now) / 1_000));
+  const retryAfter = Math.max(1, Math.ceil((entry.resetAt - Date.now()) / 1_000));
   return publicJson(
     request,
     { success: false, message: "Terlalu banyak permintaan. Coba lagi nanti." },
