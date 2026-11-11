@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: "Pemerintah Kabupaten Karimun",
     publisher: "Pemerintah Kabupaten Karimun",
     formatDetection: { email: false, address: false, telephone: false },
-    metadataBase: new URL("https://baperlitbang.karimunkab.go.id"),
+    metadataBase: process.env.SITE_URL ? new URL(process.env.SITE_URL) : undefined,
     alternates: { canonical: "/" },
     openGraph: {
       title: brandTitle,
