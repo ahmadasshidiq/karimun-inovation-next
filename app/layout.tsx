@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import { connection } from "next/server";
 import { Providers } from "@/components/providers";
@@ -10,6 +10,12 @@ const poppins = Poppins({
   display: "swap",
   variable: "--font-poppins",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const brandTitle = "Indeks Inovasi Daerah - Kabupaten Karimun";
@@ -40,7 +46,6 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: "/images/logo-karimun.webp",
       apple: "/images/logo-karimun.webp",
     },
-    viewport: { width: "device-width", initialScale: 1, maximumScale: 5 },
     robots: {
       index: true,
       follow: true,
