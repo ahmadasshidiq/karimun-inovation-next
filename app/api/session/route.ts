@@ -2,7 +2,7 @@ import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { allowedInnovationCategory } from "@/lib/innovation-category";
+import { toSessionData } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 
 const unauthorized = () =>
@@ -39,21 +39,7 @@ export async function GET() {
 
     if (!user) return unauthorized();
 
-    return NextResponse.json({
-      data: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        fullname: user.fullname,
-        role: user.role.name,
-        permission: user.role.permission,
-        institution: user.institution.name,
-        nomenclature: user.institution.nomenclature.name,
-        innovationCategory: allowedInnovationCategory(
-          user.institution.nomenclatureId,
-        ),
-      },
-    });
+    return NextResponse.json({ data: toSessionData(user) });
   } catch {
     return unauthorized();
   }

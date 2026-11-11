@@ -56,6 +56,7 @@ export default function FormData({
     roleId: initialData?.roleId || "",
     institutionId: initialData?.institutionId || "",
     password: "",
+    resetMfa: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -216,6 +217,33 @@ export default function FormData({
               </Select>
             </FormField>
           </div>
+
+          {initialData?.mfaEnabledAt ? (
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div>
+                <p className="text-sm font-bold text-slate-900">
+                  Reset Autentikasi Dua Langkah
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {form.resetMfa
+                    ? "2FA akan dinonaktifkan dan sesi akun diakhiri saat disimpan."
+                    : "Gunakan jika pengguna kehilangan perangkat autentikator."}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant={form.resetMfa ? "outline" : "default"}
+                className={
+                  form.resetMfa
+                    ? "h-9 border-slate-300 bg-white px-4 font-semibold text-slate-700 hover:bg-slate-100"
+                    : "h-9 bg-slate-900 px-4 font-semibold text-white hover:bg-slate-800"
+                }
+                onClick={() => setField("resetMfa", !form.resetMfa)}
+              >
+                {form.resetMfa ? "Batalkan" : "Reset 2FA"}
+              </Button>
+            </div>
+          ) : null}
 
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between gap-4 px-4 py-3">

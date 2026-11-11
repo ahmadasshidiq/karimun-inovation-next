@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { canManageRole, requirePermission } from "@/lib/auth-user";
 import { getPasswordError } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
-import { withAudit } from "@/lib/audit-log";
+import { recordAuditLog, withAudit } from "@/lib/audit-log";
 
 const hashPassword = (password: string, salt: string) =>
   scryptSync(password, salt, 64).toString("hex");
@@ -24,6 +24,7 @@ const userSelect = {
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
+  mfaEnabledAt: true,
   role: { select: { id: true, name: true } },
   institution: { select: { id: true, name: true } },
 } as const;
@@ -106,6 +107,7 @@ async function handlePut(
     return NextResponse.json({ message: passwordError }, { status: 400 });
   }
   const salt = newPassword ? randomBytes(32).toString("hex") : null;
+  const resetMfa = payload.resetMfa === true && Boolean(existing.mfaEnabledAt);
   const user = await prisma.user.update({
     where: { id },
     data: {
@@ -122,9 +124,29 @@ async function handlePut(
       ...(newPassword && salt
         ? { password: hashPassword(newPassword, salt), salt, currentToken: null }
         : {}),
+      ...(resetMfa
+        ? {
+            mfaSecret: null,
+            mfaPendingSecret: null,
+            mfaEnabledAt: null,
+            mfaLastUsedStep: null,
+            mfaRecoveryCodes: [],
+            currentToken: null,
+          }
+        : {}),
     },
     select: userSelect,
   });
+
+  if (resetMfa) {
+    await recordAuditLog({
+      request,
+      userId: access.user.id,
+      action: "MFA_RESET",
+      entity: "users/[id]",
+      entityId: id,
+    });
+  }
 
   return NextResponse.json({ message: "Akun berhasil diperbarui.", data: user });
 }

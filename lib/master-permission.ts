@@ -89,6 +89,10 @@ export const MASTER_PERMISSIONS: MasterPermission[] = [
     actions: ["manage"],
   },
   {
+    model: "audit-logs",
+    actions: ["get-all", "get-by-id", "export"],
+  },
+  {
     model: "dashboard-configurations",
     actions: ["get-by-id", "update"],
   },

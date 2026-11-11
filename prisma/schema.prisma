@@ -52,6 +52,11 @@ model User {
   currentToken          String?                         @map("current_token") @db.Text
   password              String                          @db.Text
   salt                  String                          @db.VarChar(255)
+  mfaSecret             String?                         @map("mfa_secret") @db.Text
+  mfaPendingSecret      String?                         @map("mfa_pending_secret") @db.Text
+  mfaEnabledAt          DateTime?                       @map("mfa_enabled_at") @db.Timestamptz(3)
+  mfaLastUsedStep       Int?                            @map("mfa_last_used_step")
+  mfaRecoveryCodes      Json?                           @map("mfa_recovery_codes")
   createdAt             DateTime                        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime                        @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt             DateTime?                       @map("deleted_at") @db.Timestamptz(3)

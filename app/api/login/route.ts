@@ -1,17 +1,19 @@
-import { randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { scryptSync, timingSafeEqual } from "node:crypto";
 
 import { Status } from "@prisma/client";
-import { SignJWT } from "jose";
 import { NextResponse } from "next/server";
 
 import { recordAuditLog } from "@/lib/audit-log";
+import {
+  createMfaChallengeResponse,
+  createSessionResponse,
+} from "@/lib/auth-session";
 import {
   clearLoginFailures,
   getClientIp,
   getLoginBlockSeconds,
   recordLoginFailure,
 } from "@/lib/login-rate-limit";
-import { allowedInnovationCategory } from "@/lib/innovation-category";
 import { prisma } from "@/lib/prisma";
 
 type LoginBody = {
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const ip = getClientIp(request);
-    const blockSeconds = getLoginBlockSeconds(identifier, ip);
+    const blockSeconds = await getLoginBlockSeconds(identifier, ip);
 
     if (blockSeconds > 0) {
       await recordAuditLog({
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     const failed = async () => {
-      recordLoginFailure(identifier, ip);
+      await recordLoginFailure(identifier, ip);
       await recordAuditLog({
         request,
         userId: user?.id,
@@ -103,7 +105,19 @@ export async function POST(request: Request) {
       return await failed();
     }
 
-    clearLoginFailures(identifier);
+    await clearLoginFailures(identifier);
+
+    if (user.mfaEnabledAt && user.mfaSecret) {
+      await recordAuditLog({
+        request,
+        userId: user.id,
+        action: "LOGIN_MFA_CHALLENGE",
+        entity: "login",
+        entityId: user.id,
+      });
+      return await createMfaChallengeResponse(user.id, rememberMe);
+    }
+
     await recordAuditLog({
       request,
       userId: user.id,
@@ -112,57 +126,7 @@ export async function POST(request: Request) {
       entityId: user.id,
     });
 
-    const jwtSecret = process.env["JWT_SECRET"];
-
-    if (!jwtSecret) {
-      throw new Error("JWT_SECRET belum dikonfigurasi.");
-    }
-
-    const tokenLifetime = rememberMe ? "7d" : "1d";
-    const token = await new SignJWT({
-      username: user.username,
-      roleId: user.roleId,
-      role: user.role.name,
-      institutionId: user.institutionId,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setSubject(user.id)
-      .setJti(randomUUID())
-      .setIssuedAt()
-      .setExpirationTime(tokenLifetime)
-      .sign(new TextEncoder().encode(jwtSecret));
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { currentToken: token },
-    });
-
-    const response = NextResponse.json({
-      message: "Login berhasil.",
-      data: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        fullname: user.fullname,
-        role: user.role.name,
-        permission: user.role.permission,
-        institution: user.institution.name,
-        nomenclature: user.institution.nomenclature.name,
-        innovationCategory: allowedInnovationCategory(
-          user.institution.nomenclatureId,
-        ),
-      },
-    });
-
-    response.cookies.set("auth_token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      ...(rememberMe ? { maxAge: 60 * 60 * 24 * 7 } : {}),
-    });
-
-    return response;
+    return await createSessionResponse(user, rememberMe);
   } catch (error) {
     console.error("Login error:", error);
 

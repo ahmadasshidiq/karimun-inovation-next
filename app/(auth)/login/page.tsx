@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { toast } from "@/components/ui/toast";
 import LoginForm from "./components/login-form";
+import MfaForm from "./components/mfa-form";
 import { initialLoginForm, type LoginFormValues } from "./page.config";
 
 export default function LoginPage() {
@@ -12,6 +13,8 @@ export default function LoginPage() {
   const [formValues, setFormValues] =
     useState<LoginFormValues>(initialLoginForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -36,6 +39,33 @@ export default function LoginPage() {
     [],
   );
 
+  const completeLogin = useCallback(
+    (data?: Record<string, unknown>) => {
+      if (data) {
+        localStorage.setItem("hr_user_data", JSON.stringify(data));
+      }
+
+      toast.add({
+        title: "Login berhasil",
+        description: "Selamat datang kembali.",
+        type: "success",
+      });
+      router.replace("/dashboard");
+      router.refresh();
+    },
+    [router],
+  );
+
+  const showLoginError = useCallback((error: unknown) => {
+    toast.add({
+      title: "Login gagal",
+      description:
+        error instanceof Error ? error.message : "Terjadi kesalahan saat login.",
+      type: "error",
+      priority: "high",
+    });
+  }, []);
+
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -50,6 +80,7 @@ export default function LoginPage() {
         });
         const result = (await response.json().catch(() => ({}))) as {
           message?: string;
+          mfaRequired?: boolean;
           data?: Record<string, unknown>;
         };
 
@@ -57,33 +88,63 @@ export default function LoginPage() {
           throw new Error(result.message || "Login gagal.");
         }
 
-        if (result.data) {
-          localStorage.setItem("hr_user_data", JSON.stringify(result.data));
+        if (result.mfaRequired) {
+          setMfaCode("");
+          setMfaRequired(true);
+          return;
         }
 
-        toast.add({
-          title: "Login berhasil",
-          description: "Selamat datang kembali.",
-          type: "success",
-        });
-        router.replace("/dashboard");
-        router.refresh();
+        completeLogin(result.data);
       } catch (error) {
-        toast.add({
-          title: "Login gagal",
-          description:
-            error instanceof Error
-              ? error.message
-              : "Terjadi kesalahan saat login.",
-          type: "error",
-          priority: "high",
-        });
+        showLoginError(error);
       } finally {
         setIsSubmitting(false);
       }
     },
-    [formValues, router],
+    [completeLogin, formValues, showLoginError],
   );
+
+  const handleSubmitMfa = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      try {
+        setIsSubmitting(true);
+
+        const response = await fetch("/api/login/mfa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: mfaCode }),
+        });
+        const result = (await response.json().catch(() => ({}))) as {
+          message?: string;
+          restart?: boolean;
+          data?: Record<string, unknown>;
+        };
+
+        if (!response.ok) {
+          if (result.restart) {
+            setMfaRequired(false);
+          }
+          throw new Error(result.message || "Verifikasi gagal.");
+        }
+
+        completeLogin(result.data);
+      } catch (error) {
+        setMfaCode("");
+        showLoginError(error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [completeLogin, mfaCode, showLoginError],
+  );
+
+  const handleBackToLogin = useCallback(() => {
+    setMfaRequired(false);
+    setMfaCode("");
+    setFormValues((current) => ({ ...current, password: "" }));
+  }, []);
 
   return (
     <main className="min-h-screen bg-white lg:flex">
@@ -106,12 +167,22 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <LoginForm
-        values={formValues}
-        isSubmitting={isSubmitting}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-      />
+      {mfaRequired ? (
+        <MfaForm
+          code={mfaCode}
+          isSubmitting={isSubmitting}
+          onChange={setMfaCode}
+          onSubmit={handleSubmitMfa}
+          onBack={handleBackToLogin}
+        />
+      ) : (
+        <LoginForm
+          values={formValues}
+          isSubmitting={isSubmitting}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+        />
+      )}
     </main>
   );
 }

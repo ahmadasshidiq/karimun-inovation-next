@@ -15,6 +15,7 @@ import {
   ChevronDown,
   FilePenLine,
   KeyRound,
+  ShieldCheck,
   Layers3,
   LogOut,
   Settings,
@@ -25,6 +26,7 @@ import {
 
 import { AppCredit } from "@/components/app-credit";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { MfaSettingsDialog } from "@/components/mfa-settings-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -204,6 +206,11 @@ const menuItems: SidebarItem[] = [
         href: "/settings/dashboard-configuration",
         access: { model: "dashboard-configurations", action: "get-by-id" },
       },
+      {
+        title: "Log Aktivitas",
+        href: "/settings/activity-logs",
+        access: { model: "audit-logs", action: "get-all" },
+      },
     ],
   },
 ];
@@ -243,6 +250,7 @@ export function AppPageHeader({
 }: AppPageHeaderProps) {
   const { user, logout } = useSessionUser();
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showMfaSettings, setShowMfaSettings] = useState(false);
   const pathname = usePathname();
   const title = titleOverride ?? getPageTitle(pathname);
   const displayedName = userName ?? user?.fullname ?? "Pengguna";
@@ -287,7 +295,7 @@ export function AppPageHeader({
           <DropdownMenuContent
             align="end"
             sideOffset={8}
-            className="w-48 bg-white p-1.5 text-neutral-900"
+            className="w-56 bg-white p-1.5 text-neutral-900"
           >
             <DropdownMenuItem
               render={<Link href="/settings/accounts" />}
@@ -302,6 +310,13 @@ export function AppPageHeader({
             >
               <KeyRound className="size-4" />
               Ganti Password
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="h-9 cursor-pointer text-sm"
+              onClick={() => setShowMfaSettings(true)}
+            >
+              <ShieldCheck className="size-4" />
+              Autentikasi 2 Langkah
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -319,6 +334,12 @@ export function AppPageHeader({
         <ChangePasswordDialog
           open
           onClose={() => setShowChangePassword(false)}
+        />
+      ) : null}
+      {showMfaSettings ? (
+        <MfaSettingsDialog
+          open
+          onClose={() => setShowMfaSettings(false)}
         />
       ) : null}
     </header>

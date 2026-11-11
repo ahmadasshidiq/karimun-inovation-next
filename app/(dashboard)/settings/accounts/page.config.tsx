@@ -31,6 +31,7 @@ export type UserDto = {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  mfaEnabledAt: string | null;
   role: UserOptionDto;
   institution: UserOptionDto;
 };
@@ -45,6 +46,7 @@ export type UserFormValues = {
   roleId: string;
   institutionId: string;
   password: string;
+  resetMfa: boolean;
 };
 
 export type UserListResponse = {
@@ -99,6 +101,16 @@ export const columnFormats: DefaultColumnFormat<UserDto>[] = [
     title: "Instansi",
     textClassName: "min-w-48",
     formatter: (_value, row) => row.institution?.name || "-",
+  },
+  {
+    key: "mfaEnabledAt",
+    title: "2FA",
+    formatter: (value) =>
+      value ? (
+        <Badge className="bg-emerald-100 text-emerald-700">Aktif</Badge>
+      ) : (
+        <Badge className="bg-slate-200 text-slate-600">Belum Aktif</Badge>
+      ),
   },
   {
     key: "status",

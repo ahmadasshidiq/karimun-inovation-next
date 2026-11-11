@@ -24,6 +24,7 @@ const userSelect = {
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
+  mfaEnabledAt: true,
   role: { select: { id: true, name: true } },
   institution: { select: { id: true, name: true } },
 } as const;
